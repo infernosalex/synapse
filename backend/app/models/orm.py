@@ -125,8 +125,12 @@ class FollowUp(Base):
     __tablename__ = "follow_ups"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    parent_job_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("research_jobs.id"), index=True)
-    child_job_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("research_jobs.id"), index=True)
+    parent_job_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("research_jobs.id", ondelete="CASCADE"), index=True
+    )
+    child_job_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("research_jobs.id", ondelete="CASCADE"), index=True
+    )
     question: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now()

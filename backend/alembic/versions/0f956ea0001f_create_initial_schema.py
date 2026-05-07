@@ -31,6 +31,12 @@ def upgrade() -> None:
         sa.Column("is_active", sa.Boolean(), nullable=False),
         sa.Column("is_superuser", sa.Boolean(), nullable=False),
         sa.Column("is_verified", sa.Boolean(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_user")),
     )
     op.create_index(op.f("ix_user_email"), "user", ["email"], unique=True)
@@ -81,11 +87,13 @@ def upgrade() -> None:
             ["child_job_id"],
             ["research_jobs.id"],
             name=op.f("fk_follow_ups_child_job_id_research_jobs"),
+            ondelete="CASCADE",
         ),
         sa.ForeignKeyConstraint(
             ["parent_job_id"],
             ["research_jobs.id"],
             name=op.f("fk_follow_ups_parent_job_id_research_jobs"),
+            ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_follow_ups")),
     )
