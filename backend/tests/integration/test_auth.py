@@ -24,19 +24,16 @@ async def test_register_login_me(client: AsyncClient) -> None:
     assert resp.json()["email"] == email
     assert resp.json()["is_active"] is True
 
-    # Log in via the JWT (bearer) backend to get a token.
+    # Log in. CookieTransport returns 204 No Content with a Set-Cookie header.
     resp = await client.post(
-        "/api/auth/jwt/login",
+        "/api/auth/login",
         data={"username": email, "password": password},
     )
-    assert resp.status_code == 200, resp.text
-    token = resp.json()["access_token"]
+    assert resp.status_code == 204, resp.text
+    assert "synapse_auth" in client.cookies
 
-    # Fetch the current user with the bearer token.
-    resp = await client.get(
-        "/api/auth/users/me",
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    # The httpx client sends the cookie automatically on subsequent requests.
+    resp = await client.get("/api/auth/users/me")
     assert resp.status_code == 200, resp.text
     assert resp.json()["email"] == email
 

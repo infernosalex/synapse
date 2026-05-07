@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     )
     redis_url: str = Field(default="redis://localhost:6379/0", alias="REDIS_URL")
     jwt_secret: str = Field(alias="JWT_SECRET")
+    # Set False only for local/dev HTTP. Prod must serve over HTTPS so the
+    # auth cookie is never sent in cleartext.
+    cookie_secure: bool = Field(default=True, alias="COOKIE_SECURE")
 
     # Server
     log_level: str = Field(default="info", alias="LOG_LEVEL")
