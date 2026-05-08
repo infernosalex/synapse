@@ -137,6 +137,11 @@ export const usersPatchUserApiAuthUsersIdPatch = <ThrowOnError extends boolean =
  * TODO: persist job to DB, push to taskiq, hand off to orchestrator.
  */
 export const startResearchApiResearchPost = <ThrowOnError extends boolean = false>(options: Options<StartResearchApiResearchPostData, ThrowOnError>) => (options.client ?? client).post<StartResearchApiResearchPostResponses, StartResearchApiResearchPostErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'synapse_auth',
+            type: 'apiKey'
+        }],
     url: '/api/research',
     ...options,
     headers: {
