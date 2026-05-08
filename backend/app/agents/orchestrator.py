@@ -13,10 +13,7 @@ from app.models.research import VerifiedReport
 
 
 class Orchestrator:
-    """Stub. Implementation lands in a later sprint.
-
-    Each agent gets its own model, chosen by the user per request.
-    """
+    """Each agent receives its own model ID, chosen by the user per request."""
 
     def __init__(
         self,
