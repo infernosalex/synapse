@@ -1,4 +1,5 @@
 import asyncio
+import os
 from logging.config import fileConfig
 from typing import Literal
 
@@ -11,7 +12,13 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 import app.auth.models  # noqa: F401 - side-effect import; registers the users table with Base.metadata
 import app.models.orm  # noqa: F401 - side-effect import; registers research domain tables with Base.metadata
 from alembic import context
-from app.config import get_settings
+
+# Migrations only need DATABASE_URL; JWT_SECRET is irrelevant here but Settings
+# validates it eagerly. Provide a placeholder so `alembic upgrade` works in
+# environments where only the DB credentials are available (e.g. CI migration jobs).
+os.environ.setdefault("JWT_SECRET", "alembic-migrations-placeholder")
+
+from app.config import get_settings  # noqa: E402 - import after env setup
 from app.db.base import Base
 
 # this is the Alembic Config object, which provides

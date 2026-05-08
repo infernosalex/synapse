@@ -1,1 +1,1 @@
-"""Authentication module — fastapi-users with JWT + cookie transports."""
+"""Authentication module — fastapi-users with a JWT strategy carried via cookie transport."""
