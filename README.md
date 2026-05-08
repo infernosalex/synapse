@@ -80,10 +80,39 @@ cp .env.example .env       # fill in OPENROUTER_API_KEY, EXA_API_KEY
 docker compose up --build
 ```
 
+On first run, apply DB migrations after containers are up:
+
+```bash
+docker compose exec backend uv run alembic upgrade head
+```
+
 - Backend: <http://localhost:8000> (OpenAPI at `/docs`)
 - Frontend: <http://localhost:5173>
 
 ### Local dev (without Docker)
+
+`postgres` and `redis` are required for local backend + worker development.
+
+Start infra services:
+
+```bash
+docker compose up -d postgres redis
+```
+
+Then point your local `.env` at localhost (the defaults are Docker service hostnames):
+
+```bash
+POSTGRES_HOST=localhost
+DATABASE_URL=postgresql+asyncpg://synapse:synapse@localhost:5432/synapse
+REDIS_URL=redis://localhost:6379/0
+```
+
+Apply database migrations before starting the API:
+
+```bash
+cd backend
+uv run alembic upgrade head
+```
 
 **Backend:**
 
@@ -91,6 +120,13 @@ docker compose up --build
 cd backend
 uv sync
 uv run uvicorn app.main:app --reload
+```
+
+Run the task worker in a second terminal (uses Redis as the broker):
+
+```bash
+cd backend
+uv run taskiq worker app.tasks:broker
 ```
 
 **Frontend:**
