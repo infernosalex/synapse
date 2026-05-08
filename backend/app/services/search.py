@@ -76,7 +76,8 @@ class ExaSearchClient:
     ) -> list[ExaResult]:
         """Run a single search; returns up to `num_results` parsed results.
 
-        Network failures are logged and surfaced to the caller — Scout treats an empty list as a soft failure for that sub-question rather than failing the whole job.
+        Raises `httpx.HTTPStatusError` on non-2xx responses and `httpx.RequestError` on network failures.
+        Callers that want per-query soft-failure semantics (e.g. `run_scout`) should catch these and continue with the remaining sub-questions.
         """
         body: dict[str, Any] = {
             "query": query,
