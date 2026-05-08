@@ -59,19 +59,22 @@ class JobRepository:
             raise JobNotFoundError(msg)
         return _to_research_job(row)
 
-    async def get_report(self, job_id: UUID) -> VerifiedReport:
-        """Reconstruct a VerifiedReport from the ORM rows for a completed job."""
-        row = await self._session.get(
-            orm.ResearchJob,
-            job_id,
-            options=[
-                # Async ORM cannot perform implicit lazy IO on plain attribute
-                # access (`row.report`) outside SQLAlchemy's greenlet bridge.
-                # Eager-loading prevents MissingGreenlet in FastAPI handlers.
-                selectinload(orm.ResearchJob.report).selectinload(orm.Report.critic_annotation),
-                selectinload(orm.ResearchJob.sources),
-            ],
+    async def get_report(self, job_id: UUID, *, user_id: UUID | None = None) -> VerifiedReport:
+        """Reconstruct a VerifiedReport from the ORM rows for a completed job.
+
+        When `user_id` is supplied the lookup is restricted to that owner; a job that exists but belongs to someone else surfaces as `JobNotFoundError` so we don't leak existence across tenants. Pass `None` only from trusted internal callers (e.g. the orchestrator) that must read any job.
+        """
+        stmt = select(orm.ResearchJob).where(orm.ResearchJob.id == job_id)
+        if user_id is not None:
+            stmt = stmt.where(orm.ResearchJob.user_id == user_id)
+        # Async ORM cannot perform implicit lazy IO on plain attribute access
+        # (`row.report`) outside SQLAlchemy's greenlet bridge. Eager-loading
+        # prevents MissingGreenlet in FastAPI handlers.
+        stmt = stmt.options(
+            selectinload(orm.ResearchJob.report).selectinload(orm.Report.critic_annotation),
+            selectinload(orm.ResearchJob.sources),
         )
+        row = (await self._session.execute(stmt)).scalar_one_or_none()
         if row is None:
             msg = f"research job {job_id} not found"
             raise JobNotFoundError(msg)

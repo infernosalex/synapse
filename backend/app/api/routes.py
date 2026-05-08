@@ -125,7 +125,8 @@ async def get_report(
 ) -> VerifiedReport:
     repo = JobRepository(session)
     try:
-        return await repo.get_report(job_id)
+        # Restrict the lookup to this user so other tenants' jobs surface as 404, not 200.
+        return await repo.get_report(job_id, user_id=user.id)
     except JobNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.") from exc
     except ReportNotFoundError as exc:
@@ -146,7 +147,7 @@ async def export_markdown(
 ) -> Response:
     repo = JobRepository(session)
     try:
-        verified = await repo.get_report(job_id)
+        verified = await repo.get_report(job_id, user_id=user.id)
     except JobNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.") from exc
     except ReportNotFoundError as exc:
