@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import AsyncIterator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+
+os.environ.setdefault("JWT_SECRET", "test-secret-min-32-chars-for-pytest-runs")
+# httpx ASGITransport runs over plain http://test, so the cookie's Secure flag
+# would prevent it from being echoed back. Disable it for the test client only.
+os.environ.setdefault("COOKIE_SECURE", "false")
+os.environ.setdefault("APP_ENV", "test")
 
 from app.main import app
 

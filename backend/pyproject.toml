@@ -49,8 +49,9 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 markers = [
     "agent_eval: LLM-as-judge evals (slow, requires API keys, run on demand)",
+    "integration: tests that require a live Postgres instance",
 ]
-addopts = "-ra --strict-markers -m 'not agent_eval'"
+addopts = "-ra --strict-markers -m 'not agent_eval and not integration'"
 
 [tool.ruff]
 line-length = 100
@@ -58,6 +59,19 @@ target-version = "py314"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "N", "SIM"]
+# B008: FastAPI's dependency injection pattern uses Depends() in default
+# arguments by design; flagging it as a "function call in default" is a
+# false positive for this framework.
+ignore = [
+    "B008",
+    # E501 is suppressed so long comments can wrap at natural sentence boundaries rather than a fixed column. See AGENTS.md.
+    "E501",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Migration files are auto-generated; FK/index names make E501 unavoidable,
+# and the trailing-whitespace on the empty "Revises:" line is Alembic's template.
+"alembic/versions/*.py" = ["E501", "W291"]
 
 [tool.mypy]
 python_version = "3.14"

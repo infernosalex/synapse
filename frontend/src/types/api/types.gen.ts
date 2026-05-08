@@ -5,9 +5,51 @@ export type ClientOptions = {
 };
 
 /**
+ * Body_auth_cookie_login_api_auth_login_post
+ */
+export type BodyAuthCookieLoginApiAuthLoginPost = {
+    /**
+     * Grant Type
+     */
+    grant_type?: string | null;
+    /**
+     * Username
+     */
+    username: string;
+    /**
+     * Password
+     */
+    password: string;
+    /**
+     * Scope
+     */
+    scope?: string;
+    /**
+     * Client Id
+     */
+    client_id?: string | null;
+    /**
+     * Client Secret
+     */
+    client_secret?: string | null;
+};
+
+/**
  * Depth
  */
 export type Depth = 'shallow' | 'standard' | 'deep';
+
+/**
+ * ErrorModel
+ */
+export type ErrorModel = {
+    /**
+     * Detail
+     */
+    detail: string | {
+        [key: string]: string;
+    };
+};
 
 /**
  * HTTPValidationError
@@ -25,11 +67,11 @@ export type HttpValidationError = {
 export type JobStatus = 'pending' | 'scouting' | 'synthesizing' | 'critiquing' | 'completed' | 'failed';
 
 /**
- * ResearchJobResponse
+ * ResearchJob
  *
- * Job descriptor returned to the client.
+ * Job descriptor returned to the client on creation and status queries.
  */
-export type ResearchJobResponse = {
+export type ResearchJob = {
     /**
      * Id
      */
@@ -38,15 +80,38 @@ export type ResearchJobResponse = {
      * Topic
      */
     topic: string;
-    status: JobStatus;
+    /**
+     * Language
+     */
+    language?: string;
+    depth?: Depth;
+    /**
+     * Models
+     */
+    models?: {
+        [key: string]: string;
+    };
+    status?: JobStatus;
     /**
      * Progress
      */
     progress?: number;
     /**
+     * Error
+     */
+    error?: string | null;
+    /**
      * Created At
      */
     created_at?: string;
+    /**
+     * Updated At
+     */
+    updated_at?: string;
+    /**
+     * Completed At
+     */
+    completed_at?: string | null;
 };
 
 /**
@@ -64,6 +129,90 @@ export type ResearchRequest = {
      */
     language?: string;
     depth?: Depth;
+    /**
+     * Models
+     */
+    models?: {
+        [key: string]: string;
+    };
+};
+
+/**
+ * UserCreate
+ */
+export type UserCreate = {
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Password
+     */
+    password: string;
+    /**
+     * Is Active
+     */
+    is_active?: boolean | null;
+    /**
+     * Is Superuser
+     */
+    is_superuser?: boolean | null;
+    /**
+     * Is Verified
+     */
+    is_verified?: boolean | null;
+};
+
+/**
+ * UserRead
+ */
+export type UserRead = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Is Active
+     */
+    is_active?: boolean;
+    /**
+     * Is Superuser
+     */
+    is_superuser?: boolean;
+    /**
+     * Is Verified
+     */
+    is_verified?: boolean;
+};
+
+/**
+ * UserUpdate
+ */
+export type UserUpdate = {
+    /**
+     * Password
+     */
+    password?: string | null;
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Is Active
+     */
+    is_active?: boolean | null;
+    /**
+     * Is Superuser
+     */
+    is_superuser?: boolean | null;
+    /**
+     * Is Verified
+     */
+    is_verified?: boolean | null;
 };
 
 /**
@@ -94,6 +243,281 @@ export type ValidationError = {
     };
 };
 
+export type AuthCookieLoginApiAuthLoginPostData = {
+    body: BodyAuthCookieLoginApiAuthLoginPost;
+    path?: never;
+    query?: never;
+    url: '/api/auth/login';
+};
+
+export type AuthCookieLoginApiAuthLoginPostErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorModel;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AuthCookieLoginApiAuthLoginPostError = AuthCookieLoginApiAuthLoginPostErrors[keyof AuthCookieLoginApiAuthLoginPostErrors];
+
+export type AuthCookieLoginApiAuthLoginPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type AuthCookieLoginApiAuthLoginPostResponse = AuthCookieLoginApiAuthLoginPostResponses[keyof AuthCookieLoginApiAuthLoginPostResponses];
+
+export type AuthCookieLogoutApiAuthLogoutPostData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/auth/logout';
+};
+
+export type AuthCookieLogoutApiAuthLogoutPostErrors = {
+    /**
+     * Missing token or inactive user.
+     */
+    401: unknown;
+};
+
+export type AuthCookieLogoutApiAuthLogoutPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type AuthCookieLogoutApiAuthLogoutPostResponse = AuthCookieLogoutApiAuthLogoutPostResponses[keyof AuthCookieLogoutApiAuthLogoutPostResponses];
+
+export type RegisterRegisterApiAuthRegisterPostData = {
+    body: UserCreate;
+    path?: never;
+    query?: never;
+    url: '/api/auth/register';
+};
+
+export type RegisterRegisterApiAuthRegisterPostErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorModel;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RegisterRegisterApiAuthRegisterPostError = RegisterRegisterApiAuthRegisterPostErrors[keyof RegisterRegisterApiAuthRegisterPostErrors];
+
+export type RegisterRegisterApiAuthRegisterPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: UserRead;
+};
+
+export type RegisterRegisterApiAuthRegisterPostResponse = RegisterRegisterApiAuthRegisterPostResponses[keyof RegisterRegisterApiAuthRegisterPostResponses];
+
+export type UsersCurrentUserApiAuthUsersMeGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/auth/users/me';
+};
+
+export type UsersCurrentUserApiAuthUsersMeGetErrors = {
+    /**
+     * Missing token or inactive user.
+     */
+    401: unknown;
+};
+
+export type UsersCurrentUserApiAuthUsersMeGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserRead;
+};
+
+export type UsersCurrentUserApiAuthUsersMeGetResponse = UsersCurrentUserApiAuthUsersMeGetResponses[keyof UsersCurrentUserApiAuthUsersMeGetResponses];
+
+export type UsersPatchCurrentUserApiAuthUsersMePatchData = {
+    body: UserUpdate;
+    path?: never;
+    query?: never;
+    url: '/api/auth/users/me';
+};
+
+export type UsersPatchCurrentUserApiAuthUsersMePatchErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorModel;
+    /**
+     * Missing token or inactive user.
+     */
+    401: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UsersPatchCurrentUserApiAuthUsersMePatchError = UsersPatchCurrentUserApiAuthUsersMePatchErrors[keyof UsersPatchCurrentUserApiAuthUsersMePatchErrors];
+
+export type UsersPatchCurrentUserApiAuthUsersMePatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserRead;
+};
+
+export type UsersPatchCurrentUserApiAuthUsersMePatchResponse = UsersPatchCurrentUserApiAuthUsersMePatchResponses[keyof UsersPatchCurrentUserApiAuthUsersMePatchResponses];
+
+export type UsersDeleteUserApiAuthUsersIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/auth/users/{id}';
+};
+
+export type UsersDeleteUserApiAuthUsersIdDeleteErrors = {
+    /**
+     * Missing token or inactive user.
+     */
+    401: unknown;
+    /**
+     * Not a superuser.
+     */
+    403: unknown;
+    /**
+     * The user does not exist.
+     */
+    404: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UsersDeleteUserApiAuthUsersIdDeleteError = UsersDeleteUserApiAuthUsersIdDeleteErrors[keyof UsersDeleteUserApiAuthUsersIdDeleteErrors];
+
+export type UsersDeleteUserApiAuthUsersIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type UsersDeleteUserApiAuthUsersIdDeleteResponse = UsersDeleteUserApiAuthUsersIdDeleteResponses[keyof UsersDeleteUserApiAuthUsersIdDeleteResponses];
+
+export type UsersUserApiAuthUsersIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/auth/users/{id}';
+};
+
+export type UsersUserApiAuthUsersIdGetErrors = {
+    /**
+     * Missing token or inactive user.
+     */
+    401: unknown;
+    /**
+     * Not a superuser.
+     */
+    403: unknown;
+    /**
+     * The user does not exist.
+     */
+    404: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UsersUserApiAuthUsersIdGetError = UsersUserApiAuthUsersIdGetErrors[keyof UsersUserApiAuthUsersIdGetErrors];
+
+export type UsersUserApiAuthUsersIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserRead;
+};
+
+export type UsersUserApiAuthUsersIdGetResponse = UsersUserApiAuthUsersIdGetResponses[keyof UsersUserApiAuthUsersIdGetResponses];
+
+export type UsersPatchUserApiAuthUsersIdPatchData = {
+    body: UserUpdate;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/auth/users/{id}';
+};
+
+export type UsersPatchUserApiAuthUsersIdPatchErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorModel;
+    /**
+     * Missing token or inactive user.
+     */
+    401: unknown;
+    /**
+     * Not a superuser.
+     */
+    403: unknown;
+    /**
+     * The user does not exist.
+     */
+    404: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UsersPatchUserApiAuthUsersIdPatchError = UsersPatchUserApiAuthUsersIdPatchErrors[keyof UsersPatchUserApiAuthUsersIdPatchErrors];
+
+export type UsersPatchUserApiAuthUsersIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserRead;
+};
+
+export type UsersPatchUserApiAuthUsersIdPatchResponse = UsersPatchUserApiAuthUsersIdPatchResponses[keyof UsersPatchUserApiAuthUsersIdPatchResponses];
+
 export type StartResearchApiResearchPostData = {
     body: ResearchRequest;
     path?: never;
@@ -114,7 +538,7 @@ export type StartResearchApiResearchPostResponses = {
     /**
      * Successful Response
      */
-    202: ResearchJobResponse;
+    202: ResearchJob;
 };
 
 export type StartResearchApiResearchPostResponse = StartResearchApiResearchPostResponses[keyof StartResearchApiResearchPostResponses];
