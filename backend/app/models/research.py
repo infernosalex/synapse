@@ -10,7 +10,9 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from uuid import UUID
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, model_validator
+
+REQUIRED_MODEL_AGENTS = ("scout", "scribe", "critic")
 
 
 class JobStatus(StrEnum):
@@ -34,8 +36,16 @@ class ResearchRequest(BaseModel):
     topic: str = Field(..., min_length=3, max_length=500)
     language: str = Field(default="en", min_length=2, max_length=8)
     depth: Depth = Depth.STANDARD
-    # Per-agent model IDs keyed by agent name ("scout", "scribe", "critic").
-    models: dict[str, str] = Field(default_factory=dict)
+    # Per-agent model IDs keyed by agent name. Each `REQUIRED_MODEL_AGENTS` entry must be present and non-empty: the orchestrator looks up `job.models[agent]` per phase, and a missing key would fail mid-run rather than at request time.
+    models: dict[str, str] = Field(...)
+
+    @model_validator(mode="after")
+    def _require_all_agent_models(self) -> ResearchRequest:
+        missing = [a for a in REQUIRED_MODEL_AGENTS if not self.models.get(a)]
+        if missing:
+            msg = f"models must include non-empty entries for: {', '.join(missing)}"
+            raise ValueError(msg)
+        return self
 
 
 class ResearchJob(BaseModel):

@@ -132,7 +132,7 @@ export type ResearchRequest = {
     /**
      * Models
      */
-    models?: {
+    models: {
         [key: string]: string;
     };
 };
