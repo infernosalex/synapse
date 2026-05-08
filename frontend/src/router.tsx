@@ -15,6 +15,7 @@ import JobProgressPage from './pages/JobProgressPage'
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import ReportPage from './pages/ReportPage'
 import ResearchInputPage from './pages/ResearchInputPage'
 import ResearchPreviewPage from './pages/ResearchPreviewPage'
 
@@ -116,6 +117,15 @@ const jobRoute = createRoute({
   component: JobProgressPage,
 })
 
+const reportRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/research/$jobId/report',
+  beforeLoad: async ({ context, location }) => {
+    await requireAuth(context.queryClient, location.href)
+  },
+  component: ReportPage,
+})
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
@@ -123,6 +133,7 @@ const routeTree = rootRoute.addChildren([
   researchNewRoute,
   researchPreviewRoute,
   jobRoute,
+  reportRoute,
 ])
 
 export function createAppRouter(queryClient: QueryClient) {

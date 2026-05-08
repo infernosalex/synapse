@@ -102,12 +102,7 @@ export default function JobProgressPage() {
     // event loop turn but satisfies the rule.
     const msgId = setTimeout(() => setCompletionMessage('Report ready — opening...'), 0)
     const navId = setTimeout(() => {
-      // The report route is added in step 22; cast the whole options object until
-      // the route tree is extended with the report route.
-      void (navigate as (opts: unknown) => unknown)({
-        to: '/research/$jobId/report',
-        params: { jobId },
-      })
+      void navigate({ to: '/research/$jobId/report', params: { jobId } })
     }, REPORT_REDIRECT_DELAY_MS)
     return () => {
       clearTimeout(msgId)

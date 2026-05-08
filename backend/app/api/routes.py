@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from uuid import UUID
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.scout import ScoutAgent, ScoutValidationError
@@ -19,7 +20,9 @@ from app.models.research import (
     PreviewResponse,
     ResearchJob,
     ResearchRequest,
+    VerifiedReport,
 )
+from app.services.persistence import JobNotFoundError, JobRepository, ReportNotFoundError
 from app.services.search import ExaSearchClient
 from app.tasks.research import run_research_pipeline
 
@@ -107,3 +110,78 @@ async def preview_research(
                 detail="Scout could not decompose the topic into sub-questions after retries.",
             ) from exc
     return PreviewResponse(sub_questions=sub_questions)
+
+
+@router.get(
+    "/research/{job_id}/report",
+    response_model=VerifiedReport,
+    status_code=status.HTTP_200_OK,
+    tags=["research"],
+)
+async def get_report(
+    job_id: UUID,
+    user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_db),
+) -> VerifiedReport:
+    repo = JobRepository(session)
+    try:
+        return await repo.get_report(job_id)
+    except JobNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.") from exc
+    except ReportNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Report not yet available — job may still be running.",
+        ) from exc
+
+
+@router.get(
+    "/research/{job_id}/export/markdown",
+    tags=["research"],
+)
+async def export_markdown(
+    job_id: UUID,
+    user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_db),
+) -> Response:
+    repo = JobRepository(session)
+    try:
+        verified = await repo.get_report(job_id)
+    except JobNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.") from exc
+    except ReportNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Report not yet available — job may still be running.",
+        ) from exc
+
+    r = verified.report
+    lines: list[str] = [f"# {r.title}", "", r.summary_md, ""]
+    for section in r.sections:
+        lines += [f"## {section.heading}", "", section.body_md, ""]
+
+    lines += ["## Sources", ""]
+    for i, src in enumerate(r.sources, start=1):
+        lines.append(f"[{i}] {src.title} — {src.url}")
+
+    md_str = "\n".join(lines)
+    return Response(
+        content=md_str,
+        media_type="text/markdown",
+        headers={"Content-Disposition": f'attachment; filename="synapse-report-{job_id}.md"'},
+    )
+
+
+@router.get(
+    "/research/{job_id}/export/pdf",
+    tags=["research"],
+)
+async def export_pdf(
+    job_id: UUID,
+    user: User = Depends(current_active_user),
+) -> Response:
+    # WeasyPrint is available via the system libs installed in backend/Dockerfile;
+    # implement by rendering the markdown to HTML then converting with WeasyPrint.
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="PDF export not yet implemented."
+    )
