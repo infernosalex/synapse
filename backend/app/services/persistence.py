@@ -15,13 +15,20 @@ from uuid import UUID
 import structlog
 from sqlalchemy import Integer, cast, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models import orm
 from app.models.research import (
+    ClaimFlag,
+    Contradiction,
     CriticAnnotations,
     JobStatus,
+    ReportSection,
     ScribeReport,
+    SectionConfidence,
     Source,
+    Verdict,
+    VerifiedReport,
 )
 from app.models.research import (
     ResearchJob as ResearchJobModel,
@@ -32,6 +39,10 @@ _log = structlog.get_logger(__name__)
 
 class JobNotFoundError(LookupError):
     """Raised when the orchestrator is asked to run a job whose row doesn't exist."""
+
+
+class ReportNotFoundError(RuntimeError):
+    """Raised when a job exists but its report has not been persisted yet."""
 
 
 class JobRepository:
@@ -47,6 +58,46 @@ class JobRepository:
             msg = f"research job {job_id} not found"
             raise JobNotFoundError(msg)
         return _to_research_job(row)
+
+    async def get_report(self, job_id: UUID, *, user_id: UUID | None = None) -> VerifiedReport:
+        """Reconstruct a VerifiedReport from the ORM rows for a completed job.
+
+        When `user_id` is supplied the lookup is restricted to that owner; a job that exists but belongs to someone else surfaces as `JobNotFoundError` so we don't leak existence across tenants. Pass `None` only from trusted internal callers (e.g. the orchestrator) that must read any job.
+        """
+        stmt = select(orm.ResearchJob).where(orm.ResearchJob.id == job_id)
+        if user_id is not None:
+            stmt = stmt.where(orm.ResearchJob.user_id == user_id)
+        # Async ORM cannot perform implicit lazy IO on plain attribute access
+        # (`row.report`) outside SQLAlchemy's greenlet bridge. Eager-loading
+        # prevents MissingGreenlet in FastAPI handlers.
+        stmt = stmt.options(
+            selectinload(orm.ResearchJob.report).selectinload(orm.Report.critic_annotation),
+            selectinload(orm.ResearchJob.sources),
+        )
+        row = (await self._session.execute(stmt)).scalar_one_or_none()
+        if row is None:
+            msg = f"research job {job_id} not found"
+            raise JobNotFoundError(msg)
+
+        report_row = row.report
+        if report_row is None:
+            msg = f"report for job {job_id} not yet available"
+            raise ReportNotFoundError(msg)
+
+        report = _from_report_row(row, report_row)
+
+        annotation_row = report_row.critic_annotation
+        if annotation_row is None:
+            msg = f"annotations for job {job_id} not yet available"
+            raise ReportNotFoundError(msg)
+
+        annotations = _from_annotation_row(annotation_row)
+
+        return VerifiedReport(
+            job=_to_research_job(row),
+            report=report,
+            annotations=annotations,
+        )
 
     async def set_status(
         self,
@@ -134,6 +185,7 @@ def _to_research_job(row: orm.ResearchJob) -> ResearchJobModel:
         language=row.language,
         depth=row.depth,  # type: ignore[arg-type]
         models=row.models,
+        sub_questions=row.sub_questions_override,
         status=JobStatus(row.status),
         progress=row.progress,
         error=row.error,
@@ -155,6 +207,68 @@ def _to_source_orm(job_id: UUID, src: Source) -> orm.Source:
         content=None,
         credibility=src.credibility,
         relevance=src.relevance,
+    )
+
+
+def _from_report_row(job_row: orm.ResearchJob, report_row: orm.Report) -> ScribeReport:
+    """Reconstruct a ScribeReport Pydantic model from the ORM row and its JSONB body.
+
+    The JSONB body stores the fields that don't have dedicated columns; see `_report_body_jsonb` for the write path.
+    """
+    body = report_row.body
+    sources = [
+        Source(
+            id=s["id"],
+            url=s["url"],
+            title=s["title"],
+            author=s.get("author"),
+            published_at=s.get("published_at"),
+            credibility=s["credibility"],
+            relevance=s["relevance"],
+            snippet=s["snippet"],
+        )
+        for s in body.get("sources", [])
+    ]
+    sections = [ReportSection(**sec) for sec in body.get("sections", [])]
+    contradictions = [Contradiction(**c) for c in body.get("contradictions", [])]
+    follow_ups: list[str] = list(body.get("follow_ups", []))
+    return ScribeReport(
+        id=body["id"],
+        job_id=job_row.id,
+        topic=body["topic"],
+        title=report_row.title,
+        summary_md=report_row.summary_md,
+        sections=sections,
+        sources=sources,
+        contradictions=contradictions,
+        follow_ups=follow_ups,
+        generated_at=report_row.generated_at,
+        model=report_row.model,
+    )
+
+
+def _from_annotation_row(row: orm.CriticAnnotation) -> CriticAnnotations:
+    """Reconstruct CriticAnnotations from its JSONB body column."""
+    body = row.body
+    section_confidence = [SectionConfidence(**sc) for sc in body.get("section_confidence", [])]
+    claim_flags = [
+        ClaimFlag(
+            claim_id=cf["claim_id"],
+            section_id=cf["section_id"],
+            verdict=Verdict(cf["verdict"]),
+            rationale=cf["rationale"],
+            supporting_source_ids=cf.get("supporting_source_ids", []),
+        )
+        for cf in body.get("claim_flags", [])
+    ]
+    return CriticAnnotations(
+        id=body["id"],
+        report_id=body["report_id"],
+        section_confidence=section_confidence,
+        claim_flags=claim_flags,
+        overall_confidence=row.overall_confidence,
+        model=row.model,
+        generated_at=row.generated_at,
     )
 
 

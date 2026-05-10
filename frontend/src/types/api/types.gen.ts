@@ -35,6 +35,77 @@ export type BodyAuthCookieLoginApiAuthLoginPost = {
 };
 
 /**
+ * ClaimFlag
+ */
+export type ClaimFlag = {
+    /**
+     * Claim Id
+     */
+    claim_id: string;
+    /**
+     * Section Id
+     */
+    section_id: string;
+    verdict: Verdict;
+    /**
+     * Rationale
+     */
+    rationale: string;
+    /**
+     * Supporting Source Ids
+     */
+    supporting_source_ids: Array<string>;
+};
+
+/**
+ * Contradiction
+ */
+export type Contradiction = {
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Source Ids
+     */
+    source_ids: Array<string>;
+};
+
+/**
+ * CriticAnnotations
+ */
+export type CriticAnnotations = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Report Id
+     */
+    report_id: string;
+    /**
+     * Section Confidence
+     */
+    section_confidence: Array<SectionConfidence>;
+    /**
+     * Claim Flags
+     */
+    claim_flags: Array<ClaimFlag>;
+    /**
+     * Overall Confidence
+     */
+    overall_confidence: number;
+    /**
+     * Model
+     */
+    model: string;
+    /**
+     * Generated At
+     */
+    generated_at: string;
+};
+
+/**
  * Depth
  */
 export type Depth = 'shallow' | 'standard' | 'deep';
@@ -67,6 +138,40 @@ export type HttpValidationError = {
 export type JobStatus = 'pending' | 'scouting' | 'synthesizing' | 'critiquing' | 'completed' | 'failed';
 
 /**
+ * PreviewResponse
+ *
+ * Response body for POST /api/research/preview.
+ */
+export type PreviewResponse = {
+    /**
+     * Sub Questions
+     */
+    sub_questions: Array<string>;
+};
+
+/**
+ * ReportSection
+ */
+export type ReportSection = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Heading
+     */
+    heading: string;
+    /**
+     * Body Md
+     */
+    body_md: string;
+    /**
+     * Cited Source Ids
+     */
+    cited_source_ids?: Array<string>;
+};
+
+/**
  * ResearchJob
  *
  * Job descriptor returned to the client on creation and status queries.
@@ -91,6 +196,10 @@ export type ResearchJob = {
     models?: {
         [key: string]: string;
     };
+    /**
+     * Sub Questions
+     */
+    sub_questions?: Array<string> | null;
     status?: JobStatus;
     /**
      * Progress
@@ -135,6 +244,118 @@ export type ResearchRequest = {
     models: {
         [key: string]: string;
     };
+    /**
+     * Sub Questions
+     */
+    sub_questions?: Array<string> | null;
+};
+
+/**
+ * ScribeReport
+ */
+export type ScribeReport = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Job Id
+     */
+    job_id: string;
+    /**
+     * Topic
+     */
+    topic: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Summary Md
+     */
+    summary_md: string;
+    /**
+     * Sections
+     */
+    sections: Array<ReportSection>;
+    /**
+     * Sources
+     */
+    sources: Array<Source>;
+    /**
+     * Contradictions
+     */
+    contradictions: Array<Contradiction>;
+    /**
+     * Follow Ups
+     */
+    follow_ups: Array<string>;
+    /**
+     * Generated At
+     */
+    generated_at: string;
+    /**
+     * Model
+     */
+    model: string;
+};
+
+/**
+ * SectionConfidence
+ */
+export type SectionConfidence = {
+    /**
+     * Section Id
+     */
+    section_id: string;
+    /**
+     * Score
+     */
+    score: number;
+    /**
+     * Reasoning
+     */
+    reasoning: string;
+};
+
+/**
+ * Source
+ *
+ * A single source gathered by Scout, referenced by Scribe and Critic.
+ */
+export type Source = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Url
+     */
+    url: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Author
+     */
+    author?: string | null;
+    /**
+     * Published At
+     */
+    published_at?: string | null;
+    /**
+     * Credibility
+     */
+    credibility: number;
+    /**
+     * Relevance
+     */
+    relevance: number;
+    /**
+     * Snippet
+     */
+    snippet: string;
 };
 
 /**
@@ -244,26 +465,19 @@ export type ValidationError = {
 };
 
 /**
- * ClaimFlag
+ * Verdict
  */
-export type ClaimFlag = {
-    /**
-     * Claim Id
-     */
-    claim_id: string;
-    /**
-     * Section Id
-     */
-    section_id: string;
-    verdict: Verdict;
-    /**
-     * Rationale
-     */
-    rationale: string;
-    /**
-     * Supporting Source Ids
-     */
-    supporting_source_ids: Array<string>;
+export type Verdict = 'supported' | 'partially_supported' | 'unsupported' | 'contradicted';
+
+/**
+ * VerifiedReport
+ *
+ * Full response returned to the frontend once a job has completed.
+ */
+export type VerifiedReport = {
+    job: ResearchJob;
+    report: ScribeReport;
+    annotations: CriticAnnotations;
 };
 
 /**
@@ -330,28 +544,6 @@ export type JobFailed = {
 };
 
 /**
- * ReportSection
- */
-export type ReportSection = {
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Heading
-     */
-    heading: string;
-    /**
-     * Body Md
-     */
-    body_md: string;
-    /**
-     * Cited Source Ids
-     */
-    cited_source_ids?: Array<string>;
-};
-
-/**
  * ScoutComplete
  */
 export type ScoutComplete = {
@@ -408,46 +600,6 @@ export type SectionDrafted = {
      */
     type: 'section_drafted';
     section: ReportSection;
-};
-
-/**
- * Source
- *
- * A single source gathered by Scout, referenced by Scribe and Critic.
- */
-export type Source = {
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Url
-     */
-    url: string;
-    /**
-     * Title
-     */
-    title: string;
-    /**
-     * Author
-     */
-    author?: string | null;
-    /**
-     * Published At
-     */
-    published_at?: string | null;
-    /**
-     * Credibility
-     */
-    credibility: number;
-    /**
-     * Relevance
-     */
-    relevance: number;
-    /**
-     * Snippet
-     */
-    snippet: string;
 };
 
 /**
@@ -520,11 +672,6 @@ export type SubQuestionsGenerated = {
      */
     sub_questions: Array<string>;
 };
-
-/**
- * Verdict
- */
-export type Verdict = 'supported' | 'partially_supported' | 'unsupported' | 'contradicted';
 
 export type ProgressEvent = ({
     type: 'sub_questions_generated';
@@ -865,6 +1012,117 @@ export type StartResearchApiResearchPostResponses = {
 };
 
 export type StartResearchApiResearchPostResponse = StartResearchApiResearchPostResponses[keyof StartResearchApiResearchPostResponses];
+
+export type PreviewResearchApiResearchPreviewPostData = {
+    body: ResearchRequest;
+    path?: never;
+    query?: never;
+    url: '/api/research/preview';
+};
+
+export type PreviewResearchApiResearchPreviewPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PreviewResearchApiResearchPreviewPostError = PreviewResearchApiResearchPreviewPostErrors[keyof PreviewResearchApiResearchPreviewPostErrors];
+
+export type PreviewResearchApiResearchPreviewPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: PreviewResponse;
+};
+
+export type PreviewResearchApiResearchPreviewPostResponse = PreviewResearchApiResearchPreviewPostResponses[keyof PreviewResearchApiResearchPreviewPostResponses];
+
+export type GetReportApiResearchJobIdReportGetData = {
+    body?: never;
+    path: {
+        /**
+         * Job Id
+         */
+        job_id: string;
+    };
+    query?: never;
+    url: '/api/research/{job_id}/report';
+};
+
+export type GetReportApiResearchJobIdReportGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetReportApiResearchJobIdReportGetError = GetReportApiResearchJobIdReportGetErrors[keyof GetReportApiResearchJobIdReportGetErrors];
+
+export type GetReportApiResearchJobIdReportGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: VerifiedReport;
+};
+
+export type GetReportApiResearchJobIdReportGetResponse = GetReportApiResearchJobIdReportGetResponses[keyof GetReportApiResearchJobIdReportGetResponses];
+
+export type ExportMarkdownApiResearchJobIdExportMarkdownGetData = {
+    body?: never;
+    path: {
+        /**
+         * Job Id
+         */
+        job_id: string;
+    };
+    query?: never;
+    url: '/api/research/{job_id}/export/markdown';
+};
+
+export type ExportMarkdownApiResearchJobIdExportMarkdownGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExportMarkdownApiResearchJobIdExportMarkdownGetError = ExportMarkdownApiResearchJobIdExportMarkdownGetErrors[keyof ExportMarkdownApiResearchJobIdExportMarkdownGetErrors];
+
+export type ExportMarkdownApiResearchJobIdExportMarkdownGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type ExportPdfApiResearchJobIdExportPdfGetData = {
+    body?: never;
+    path: {
+        /**
+         * Job Id
+         */
+        job_id: string;
+    };
+    query?: never;
+    url: '/api/research/{job_id}/export/pdf';
+};
+
+export type ExportPdfApiResearchJobIdExportPdfGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExportPdfApiResearchJobIdExportPdfGetError = ExportPdfApiResearchJobIdExportPdfGetErrors[keyof ExportPdfApiResearchJobIdExportPdfGetErrors];
+
+export type ExportPdfApiResearchJobIdExportPdfGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type HealthHealthGetData = {
     body?: never;

@@ -514,6 +514,193 @@
         ]
       }
     },
+    "/api/research/preview": {
+      "post": {
+        "tags": [
+          "research"
+        ],
+        "summary": "Preview Research",
+        "description": "Run only Scout's decompose step and return the proposed sub-questions.\n\nNo job row is created and no work is queued. This is intentionally a\nsynchronous preview: the caller gets sub-questions back immediately so they\ncan review and drop them before committing to a full research run.",
+        "operationId": "preview_research_api_research_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ]
+      }
+    },
+    "/api/research/{job_id}/report": {
+      "get": {
+        "tags": [
+          "research"
+        ],
+        "summary": "Get Report",
+        "operationId": "get_report_api_research__job_id__report_get",
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifiedReport"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/{job_id}/export/markdown": {
+      "get": {
+        "tags": [
+          "research"
+        ],
+        "summary": "Export Markdown",
+        "operationId": "export_markdown_api_research__job_id__export_markdown_get",
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/{job_id}/export/pdf": {
+      "get": {
+        "tags": [
+          "research"
+        ],
+        "summary": "Export Pdf",
+        "operationId": "export_pdf_api_research__job_id__export_pdf_get",
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": [
@@ -601,6 +788,116 @@
         ],
         "title": "Body_auth_cookie_login_api_auth_login_post"
       },
+      "ClaimFlag": {
+        "properties": {
+          "claim_id": {
+            "type": "string",
+            "title": "Claim Id"
+          },
+          "section_id": {
+            "type": "string",
+            "title": "Section Id"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/Verdict"
+          },
+          "rationale": {
+            "type": "string",
+            "title": "Rationale"
+          },
+          "supporting_source_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Supporting Source Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "claim_id",
+          "section_id",
+          "verdict",
+          "rationale",
+          "supporting_source_ids"
+        ],
+        "title": "ClaimFlag"
+      },
+      "Contradiction": {
+        "properties": {
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "source_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "description",
+          "source_ids"
+        ],
+        "title": "Contradiction"
+      },
+      "CriticAnnotations": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "report_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Report Id"
+          },
+          "section_confidence": {
+            "items": {
+              "$ref": "#/components/schemas/SectionConfidence"
+            },
+            "type": "array",
+            "title": "Section Confidence"
+          },
+          "claim_flags": {
+            "items": {
+              "$ref": "#/components/schemas/ClaimFlag"
+            },
+            "type": "array",
+            "title": "Claim Flags"
+          },
+          "overall_confidence": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Overall Confidence"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "report_id",
+          "section_confidence",
+          "claim_flags",
+          "overall_confidence",
+          "model",
+          "generated_at"
+        ],
+        "title": "CriticAnnotations"
+      },
       "Depth": {
         "type": "string",
         "enum": [
@@ -658,6 +955,53 @@
         ],
         "title": "JobStatus"
       },
+      "PreviewResponse": {
+        "properties": {
+          "sub_questions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sub Questions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sub_questions"
+        ],
+        "title": "PreviewResponse",
+        "description": "Response body for POST /api/research/preview."
+      },
+      "ReportSection": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "heading": {
+            "type": "string",
+            "title": "Heading"
+          },
+          "body_md": {
+            "type": "string",
+            "title": "Body Md"
+          },
+          "cited_source_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cited Source Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "heading",
+          "body_md"
+        ],
+        "title": "ReportSection"
+      },
       "ResearchJob": {
         "properties": {
           "id": {
@@ -684,6 +1028,20 @@
             },
             "type": "object",
             "title": "Models"
+          },
+          "sub_questions": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sub Questions"
           },
           "status": {
             "$ref": "#/components/schemas/JobStatus",
@@ -763,6 +1121,20 @@
             },
             "type": "object",
             "title": "Models"
+          },
+          "sub_questions": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sub Questions"
           }
         },
         "type": "object",
@@ -772,6 +1144,178 @@
         ],
         "title": "ResearchRequest",
         "description": "Inbound request body for POST /api/research."
+      },
+      "ScribeReport": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "job_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Job Id"
+          },
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "summary_md": {
+            "type": "string",
+            "title": "Summary Md"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/ReportSection"
+            },
+            "type": "array",
+            "title": "Sections"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "contradictions": {
+            "items": {
+              "$ref": "#/components/schemas/Contradiction"
+            },
+            "type": "array",
+            "title": "Contradictions"
+          },
+          "follow_ups": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Follow Ups"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "job_id",
+          "topic",
+          "title",
+          "summary_md",
+          "sections",
+          "sources",
+          "contradictions",
+          "follow_ups",
+          "generated_at",
+          "model"
+        ],
+        "title": "ScribeReport"
+      },
+      "SectionConfidence": {
+        "properties": {
+          "section_id": {
+            "type": "string",
+            "title": "Section Id"
+          },
+          "score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Score"
+          },
+          "reasoning": {
+            "type": "string",
+            "title": "Reasoning"
+          }
+        },
+        "type": "object",
+        "required": [
+          "section_id",
+          "score",
+          "reasoning"
+        ],
+        "title": "SectionConfidence"
+      },
+      "Source": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2083,
+            "minLength": 1,
+            "format": "uri",
+            "title": "Url"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "author": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "credibility": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Credibility"
+          },
+          "relevance": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Relevance"
+          },
+          "snippet": {
+            "type": "string",
+            "title": "Snippet"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "url",
+          "title",
+          "credibility",
+          "relevance",
+          "snippet"
+        ],
+        "title": "Source",
+        "description": "A single source gathered by Scout, referenced by Scribe and Critic."
       },
       "UserCreate": {
         "properties": {
@@ -965,40 +1509,36 @@
         ],
         "title": "ValidationError"
       },
-      "ClaimFlag": {
+      "Verdict": {
+        "type": "string",
+        "enum": [
+          "supported",
+          "partially_supported",
+          "unsupported",
+          "contradicted"
+        ],
+        "title": "Verdict"
+      },
+      "VerifiedReport": {
         "properties": {
-          "claim_id": {
-            "title": "Claim Id",
-            "type": "string"
+          "job": {
+            "$ref": "#/components/schemas/ResearchJob"
           },
-          "section_id": {
-            "title": "Section Id",
-            "type": "string"
+          "report": {
+            "$ref": "#/components/schemas/ScribeReport"
           },
-          "verdict": {
-            "$ref": "#/components/schemas/Verdict"
-          },
-          "rationale": {
-            "title": "Rationale",
-            "type": "string"
-          },
-          "supporting_source_ids": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Supporting Source Ids",
-            "type": "array"
+          "annotations": {
+            "$ref": "#/components/schemas/CriticAnnotations"
           }
         },
+        "type": "object",
         "required": [
-          "claim_id",
-          "section_id",
-          "verdict",
-          "rationale",
-          "supporting_source_ids"
+          "job",
+          "report",
+          "annotations"
         ],
-        "title": "ClaimFlag",
-        "type": "object"
+        "title": "VerifiedReport",
+        "description": "Full response returned to the frontend once a job has completed."
       },
       "ClaimVerified": {
         "properties": {
@@ -1092,36 +1632,6 @@
         "title": "JobFailed",
         "type": "object"
       },
-      "ReportSection": {
-        "properties": {
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "heading": {
-            "title": "Heading",
-            "type": "string"
-          },
-          "body_md": {
-            "title": "Body Md",
-            "type": "string"
-          },
-          "cited_source_ids": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Cited Source Ids",
-            "type": "array"
-          }
-        },
-        "required": [
-          "id",
-          "heading",
-          "body_md"
-        ],
-        "title": "ReportSection",
-        "type": "object"
-      },
       "ScoutComplete": {
         "properties": {
           "job_id": {
@@ -1207,77 +1717,6 @@
           "type"
         ],
         "title": "SectionDrafted",
-        "type": "object"
-      },
-      "Source": {
-        "description": "A single source gathered by Scout, referenced by Scribe and Critic.",
-        "properties": {
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "url": {
-            "format": "uri",
-            "maxLength": 2083,
-            "minLength": 1,
-            "title": "Url",
-            "type": "string"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          },
-          "author": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Author"
-          },
-          "published_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Published At"
-          },
-          "credibility": {
-            "maximum": 1.0,
-            "minimum": 0.0,
-            "title": "Credibility",
-            "type": "number"
-          },
-          "relevance": {
-            "maximum": 1.0,
-            "minimum": 0.0,
-            "title": "Relevance",
-            "type": "number"
-          },
-          "snippet": {
-            "title": "Snippet",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "url",
-          "title",
-          "credibility",
-          "relevance",
-          "snippet"
-        ],
-        "title": "Source",
         "type": "object"
       },
       "SourceFound": {
@@ -1384,16 +1823,6 @@
         ],
         "title": "SubQuestionsGenerated",
         "type": "object"
-      },
-      "Verdict": {
-        "enum": [
-          "supported",
-          "partially_supported",
-          "unsupported",
-          "contradicted"
-        ],
-        "title": "Verdict",
-        "type": "string"
       },
       "ProgressEvent": {
         "discriminator": {
