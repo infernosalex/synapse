@@ -21,11 +21,11 @@ def _strip_claim_spans(text: str) -> str:
 def _claims_appendix(
     claim_flags: list[ClaimFlag],
     sections: list[ReportSection],
-) -> str:
-    """Return a markdown ## Flagged Claims section, or empty string if nothing is flagged."""
+) -> list[str]:
+    """Return markdown lines for a ## Flagged Claims section, or an empty list if nothing is flagged."""
     flagged = [f for f in claim_flags if f.verdict in _FLAGGED_VERDICTS]
     if not flagged:
-        return ""
+        return []
     heading_by_id = {s.id: s.heading for s in sections}
     lines: list[str] = [
         "---",
@@ -42,7 +42,7 @@ def _claims_appendix(
             f"> {flag.rationale}",
             "",
         ]
-    return "\n".join(lines)
+    return lines
 
 
 def build_markdown(verified: VerifiedReport) -> str:
@@ -71,5 +71,5 @@ def build_markdown(verified: VerifiedReport) -> str:
     lines.append("")
     appendix = _claims_appendix(verified.annotations.claim_flags, r.sections)
     if appendix:
-        lines.append(appendix)
+        lines.extend(appendix)
     return "\n".join(lines)

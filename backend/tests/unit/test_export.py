@@ -95,7 +95,7 @@ def test_build_markdown_strips_spans_from_body() -> None:
 def test_build_markdown_strips_spans_from_summary() -> None:
     verified = _make_verified()
     md = build_markdown(verified)
-    assert "Summary text" in md
+    assert "Summary text[^s1]." in md
     assert "<span" not in md
 
 
