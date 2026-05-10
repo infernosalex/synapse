@@ -17,7 +17,7 @@ from app.models.research import (
     Verdict,
     VerifiedReport,
 )
-from app.services.export import build_markdown
+from app.services.export import build_html, build_markdown
 
 _NOW = datetime.now(UTC)
 _JOB_ID = uuid4()
@@ -142,3 +142,50 @@ def test_build_markdown_no_appendix_when_partially_supported() -> None:
     verified = _make_verified(verdict=Verdict.PARTIALLY_SUPPORTED)
     md = build_markdown(verified)
     assert "## Flagged Claims" not in md
+
+
+def test_build_html_is_valid_html_document() -> None:
+    verified = _make_verified()
+    html = build_html(verified)
+    assert "<!DOCTYPE html>" in html
+    assert "<html" in html
+    assert "</html>" in html
+
+
+def test_build_html_embeds_title() -> None:
+    verified = _make_verified()
+    html = build_html(verified)
+    assert "Test Report Title" in html
+
+
+def test_build_html_includes_verdict_css() -> None:
+    verified = _make_verified()
+    html = build_html(verified)
+    assert "data-verdict=supported" in html
+    assert "data-verdict=unsupported" in html
+    assert "data-verdict=partially_supported" in html
+    assert "data-verdict=contradicted" in html
+
+
+def test_build_html_decorates_unsupported_span() -> None:
+    verified = _make_verified(verdict=Verdict.UNSUPPORTED)
+    html = build_html(verified)
+    assert 'data-verdict="unsupported"' in html
+
+
+def test_build_html_decorates_supported_span() -> None:
+    verified = _make_verified(verdict=Verdict.SUPPORTED)
+    html = build_html(verified)
+    assert 'data-verdict="supported"' in html
+
+
+def test_build_html_preserves_claim_span_text() -> None:
+    verified = _make_verified()
+    html = build_html(verified)
+    assert "with citation" in html
+
+
+def test_build_html_contains_source_list() -> None:
+    verified = _make_verified()
+    html = build_html(verified)
+    assert "Example Source" in html
