@@ -4,6 +4,7 @@
 `build_html` renders a self-contained HTML document with verdict-decorated claim spans.
 `render_pdf` will be added in a subsequent task.
 """
+
 from __future__ import annotations
 
 import asyncio

@@ -1,4 +1,5 @@
 """Unit tests for app/services/export.py — markdown builder."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
