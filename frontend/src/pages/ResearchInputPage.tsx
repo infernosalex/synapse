@@ -5,9 +5,10 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { z } from 'zod'
 
 import { Button } from '../components/ui/Button'
+import { Select, type SelectOption } from '../components/ui/Select'
 import { SynapseMark } from '../components/ui/SynapseMark'
 import { AGENTS, AGENT_ORDER, type Agent } from '../components/ui/Agent'
-import { Pill } from '../components/Pill'
+import { AgentDot } from '../components/ui/AgentDot'
 import { ConfidenceBar } from '../components/ConfidenceBar'
 import { useMe } from '../hooks/useMe'
 import { useAgentModels } from '../hooks/useAgentModels'
@@ -43,11 +44,24 @@ const EXAMPLE_QUESTIONS = [
   'Heat pump adoption: what is working in the Nordics that is not translating to the UK, and why?',
 ]
 
-const DEPTH_LABELS: Record<FormData['depth'], string> = {
-  shallow: 'Shallow',
-  standard: 'Standard',
-  deep: 'Deep',
-}
+const DEPTH_OPTIONS: ReadonlyArray<SelectOption<FormData['depth']>> = [
+  { value: 'shallow', label: 'Shallow', description: 'Quick scan' },
+  { value: 'standard', label: 'Standard', description: 'Balanced run' },
+  { value: 'deep', label: 'Deep', description: 'Exhaustive sweep' },
+]
+
+const MODEL_OPTIONS: ReadonlyArray<SelectOption> = ALLOWED_MODELS.map((m) => ({
+  value: m.id,
+  label: m.label,
+  description: m.id,
+}))
+
+/* Shared trigger styling: a pill-shaped button where the full surface — agent dot, label,
+ * value text and caret — is the click target. Border lights up on hover, focus, and while
+ * the popup is open so the affordance covers the whole shape rather than just the value text. */
+const PILL_TRIGGER_CLASS =
+  'border border-line px-3 py-1.5 gap-1.5 transition-colors duration-150 ' +
+  'hover:border-fg focus-visible:border-fg data-[popup-open]:border-fg'
 
 function getInitials(email: string): string {
   return email.split('@')[0].slice(0, 2).toUpperCase()
@@ -277,43 +291,42 @@ export default function ResearchInputPage() {
               className="flex flex-wrap items-center gap-3"
               style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--line)' }}
             >
-              <Pill
-                label="Depth"
-                value={
-                  <select
-                    value={depthValue}
-                    onChange={(e) => setValue('depth', e.target.value as FormData['depth'])}
-                    className="bg-transparent font-sans text-[12px] cursor-pointer outline-none"
-                    aria-label="Research depth"
-                  >
-                    <option value="shallow">{DEPTH_LABELS.shallow}</option>
-                    <option value="standard">{DEPTH_LABELS.standard}</option>
-                    <option value="deep">{DEPTH_LABELS.deep}</option>
-                  </select>
-                }
-                interactive
+              <Select
+                value={depthValue}
+                onValueChange={(v) => setValue('depth', v)}
+                options={DEPTH_OPTIONS}
+                ariaLabel="Research depth"
+                triggerClassName={PILL_TRIGGER_CLASS}
+                renderTrigger={(opt) => (
+                  <span className="flex flex-col items-start min-w-0 mr-1.5">
+                    <span className="micro leading-none">Depth</span>
+                    <span className="font-sans text-[12px] leading-tight mt-0.5 text-fg">
+                      {opt?.label ?? '—'}
+                    </span>
+                  </span>
+                )}
               />
 
               {AGENT_ORDER.map((agent) => (
-                <Pill
+                <Select
                   key={agent}
-                  label={AGENTS[agent].name}
-                  agent={agent}
-                  value={
-                    <select
-                      value={models[agent]}
-                      onChange={(e) => handleModelChange(agent, e.target.value)}
-                      className="bg-transparent font-sans text-[12px] cursor-pointer outline-none max-w-[140px]"
-                      aria-label={`${AGENTS[agent].name} model`}
-                    >
-                      {ALLOWED_MODELS.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.label}
-                        </option>
-                      ))}
-                    </select>
-                  }
-                  interactive
+                  value={models[agent]}
+                  onValueChange={(v) => handleModelChange(agent, v)}
+                  options={MODEL_OPTIONS}
+                  ariaLabel={`${AGENTS[agent].name} model`}
+                  popupClassName="min-w-[260px]"
+                  triggerClassName={PILL_TRIGGER_CLASS}
+                  renderTrigger={(opt) => (
+                    <>
+                      <AgentDot agent={agent} size={18} className="mr-1" />
+                      <span className="flex flex-col items-start min-w-0 mr-1.5">
+                        <span className="micro leading-none">{AGENTS[agent].name}</span>
+                        <span className="font-sans text-[12px] leading-tight mt-0.5 text-fg truncate max-w-[150px]">
+                          {opt?.label ?? '—'}
+                        </span>
+                      </span>
+                    </>
+                  )}
                 />
               ))}
 

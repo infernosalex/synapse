@@ -247,7 +247,11 @@
     animation: pulse 1.6s ease-in-out infinite;
   }
 
-  /* Thin custom scrollbar — webkit only, harmless on others. */
+  /* Thin custom scrollbar — themed in webkit and firefox. */
+  .scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+  }
   .scrollbar::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -255,6 +259,9 @@
   .scrollbar::-webkit-scrollbar-thumb {
     background: var(--line);
     border-radius: 3px;
+  }
+  .scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--fg-3);
   }
   .scrollbar::-webkit-scrollbar-track {
     background: transparent;
