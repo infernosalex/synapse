@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import ReportPage from './ReportPage'
@@ -59,7 +59,7 @@ const _VERIFIED_REPORT: VerifiedReport = {
       {
         id: 'sec1',
         heading: 'The 2023 inflection',
-        body_md: 'CEE deal volume fell <span data-claim="sec1.c1">41% YoY</span> in Q1 2023.',
+        body_md: 'CEE deal volume fell <span data-claim="sec1.c1">41% YoY</span> in Q1 2023.[^s1]',
         cited_source_ids: ['s1'],
       },
       {
@@ -281,5 +281,42 @@ describe('ReportPage', () => {
     expect(list).toBeInTheDocument()
     expect(list.textContent).toContain('Cred')
     expect(list.textContent).toContain('Rel')
+  })
+
+  it('scrolls to and highlights a source row when a footnote is clicked', async () => {
+    vi.useFakeTimers()
+    const scrollIntoViewMock = vi.fn()
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView
+    HTMLElement.prototype.scrollIntoView = scrollIntoViewMock
+
+    vi.mocked(useReport).mockReturnValue({
+      data: _VERIFIED_REPORT,
+      isLoading: false,
+      error: null,
+    })
+
+    renderPage()
+
+    // Find and click the footnote link (href='#s1' distinguishes it from the source row)
+    const footnote = document.querySelector('a[href="#s1"]') as HTMLElement | null
+    expect(footnote).toBeInTheDocument()
+    act(() => {
+      footnote!.click()
+    })
+
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' })
+
+    // Assert the source row is highlighted
+    const row = document.querySelector('#s1')
+    expect(row).toHaveAttribute('data-highlighted', 'true')
+
+    // Advance past the 2-second highlight timer
+    act(() => {
+      vi.advanceTimersByTime(2001)
+    })
+    expect(row).toHaveAttribute('data-highlighted', 'false')
+
+    HTMLElement.prototype.scrollIntoView = originalScrollIntoView
+    vi.useRealTimers()
   })
 })

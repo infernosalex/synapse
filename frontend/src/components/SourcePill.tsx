@@ -1,15 +1,8 @@
+import { credibilityColor } from '../lib/source-utils'
+
 interface SourcePillProps {
   title: string
   credibility: number | null
-}
-
-// Colour thresholds match the figma: scout blue for high-confidence sources,
-// scribe amber for mid-range, muted grey for borderline, critic red for low.
-function credibilityColor(cred: number): string {
-  if (cred > 0.9) return 'var(--scout)'
-  if (cred > 0.8) return 'var(--scribe)'
-  if (cred > 0.6) return 'var(--muted)'
-  return 'var(--critic)'
 }
 
 export function SourcePill({ title, credibility }: SourcePillProps) {

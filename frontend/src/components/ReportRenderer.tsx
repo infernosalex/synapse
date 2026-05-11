@@ -1,9 +1,11 @@
+import { useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize, { defaultSchema, type Options as SanitizeSchema } from 'rehype-sanitize'
 import remarkGfm from 'remark-gfm'
 
 import type { ClaimFlag, ReportSection, Source } from '../types/api'
+import { extractDomain } from '../lib/source-utils'
 import { Tooltip } from './ui/Tooltip'
 import { cn } from './ui/cn'
 
@@ -74,16 +76,13 @@ function ClaimHighlight({ id, flag, children }: ClaimHighlightProps) {
 }
 
 interface FootnoteProps {
-  sourceId: string
-  sources: Source[]
+  source: Source
   label: string
+  onSourceClick?: (id: string) => void
 }
 
-function Footnote({ sourceId, sources, label }: FootnoteProps) {
-  const source = sources.find((s) => s.id === sourceId)
-  if (!source) return <sup>{label}</sup>
-
-  const domain = new URL(source.url).hostname.replace(/^www\./, '')
+function Footnote({ source, label, onSourceClick }: FootnoteProps) {
+  const domain = extractDomain(source.url)
   const tooltipContent = (
     <div className="flex flex-col gap-1 normal-case tracking-normal py-0.5 text-bg">
       <div className="font-serif text-[13px] leading-tight">{source.title}</div>
@@ -99,18 +98,21 @@ function Footnote({ sourceId, sources, label }: FootnoteProps) {
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault()
-    const target = document.getElementById(sourceId)
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      // Update hash without jumping immediately (since we handled scroll)
-      window.history.pushState(null, '', `#${sourceId}`)
+    if (onSourceClick) {
+      onSourceClick(source.id)
+    } else {
+      const target = document.getElementById(source.id)
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        window.history.pushState(null, '', `#${source.id}`)
+      }
     }
   }
 
   return (
     <Tooltip content={tooltipContent} className="bg-fg text-bg border-none shadow-xl lowercase">
       <a
-        href={`#${sourceId}`}
+        href={`#${source.id}`}
         onClick={handleClick}
         className="inline-block px-0.5 -mt-2 font-mono text-[10px] font-bold text-scout hover:text-scout/80 no-underline"
       >
@@ -124,9 +126,19 @@ interface ReportRendererProps {
   section: ReportSection
   claimFlags: ClaimFlag[]
   sources: Source[]
+  onSourceClick?: (id: string) => void
 }
 
-export function ReportRenderer({ section, claimFlags, sources }: ReportRendererProps) {
+export function ReportRenderer({ section, claimFlags, sources, onSourceClick }: ReportRendererProps) {
+  // O(1) lookup for footnotes — rebuilt only when the source list changes.
+  const sourceMap = useMemo(() => {
+    const map = new Map<string, Source>()
+    for (const s of sources) {
+      map.set(s.id, s)
+    }
+    return map
+  }, [sources])
+
   // Scribe produces raw [^sX] syntax. Pre-process to wrap in <sup data-source="sX">
   const bodyWithFootnotes = section.body_md.replace(/\[\^(s\d+)\]/g, (_match, id) => {
     const num = id.replace('s', '')
@@ -153,8 +165,10 @@ export function ReportRenderer({ section, claimFlags, sources }: ReportRendererP
         sup: ({ node, children, ...props }: any) => {
           const sourceId = node?.properties?.dataSource as string | undefined
           if (sourceId) {
+            const source = sourceMap.get(sourceId)
+            if (!source) return <sup {...props}>{children}</sup>
             return (
-              <Footnote sourceId={sourceId} sources={sources} label={String(children)} />
+              <Footnote source={source} label={String(children)} onSourceClick={onSourceClick} />
             )
           }
           return <sup {...props}>{children}</sup>

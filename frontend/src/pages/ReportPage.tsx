@@ -1,7 +1,9 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from '@tanstack/react-router'
 
 import { MarginPanel } from '../components/MarginPanel'
 import { ReportSection } from '../components/ReportSection'
+import { SourceRow } from '../components/SourceRow'
 import { Button } from '../components/ui/Button'
 import { Chip } from '../components/ui/Chip'
 import { SynapseMark } from '../components/ui/SynapseMark'
@@ -20,6 +22,26 @@ function estimateReadingTime(sections: { body_md: string }[]): number {
 export default function ReportPage() {
   const { jobId } = useParams({ from: '/research/$jobId/report' })
   const { data, isLoading, error } = useReport(jobId)
+  const [highlightedSourceId, setHighlightedSourceId] = useState<string | null>(null)
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const scrollToSource = useCallback((id: string) => {
+    setHighlightedSourceId(id)
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    window.history.pushState(null, '', `#${id}`)
+    if (highlightTimerRef.current !== null) {
+      clearTimeout(highlightTimerRef.current)
+    }
+    highlightTimerRef.current = setTimeout(() => setHighlightedSourceId(null), 2000)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current !== null) {
+        clearTimeout(highlightTimerRef.current)
+      }
+    }
+  }, [])
 
   if (isLoading) {
     return (
@@ -201,6 +223,7 @@ export default function ReportPage() {
                   confidence={confidence}
                   claimFlags={sectionFlags}
                   sources={report.sources}
+                  onSourceClick={scrollToSource}
                 />
               </div>
               <aside style={{ background: 'var(--bg-2)' }}>
@@ -234,58 +257,12 @@ export default function ReportPage() {
                 }}
               >
                 {report.sources.map((src, idx) => (
-                  <li
+                  <SourceRow
                     key={src.id}
-                    id={src.id}
-                    className="source-row"
-                    style={{ paddingBottom: 12, breakInside: 'avoid' }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                      <img
-                        src={`https://www.google.com/s2/favicons?domain=${getDomain(src.url)}&sz=32`}
-                        alt=""
-                        width={16}
-                        height={16}
-                        style={{ marginTop: 2, flexShrink: 0 }}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none'
-                        }}
-                      />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <a
-                          href={src.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{ color: 'inherit', textDecoration: 'none' }}
-                        >
-                          [{idx + 1}] {src.title}
-                        </a>
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 10,
-                            marginTop: 4,
-                            flexWrap: 'wrap',
-                          }}
-                        >
-                          <span
-                            className="font-mono"
-                            style={{
-                              fontSize: 9,
-                              color: 'var(--muted)',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.08em',
-                            }}
-                          >
-                            {getDomain(src.url)}
-                          </span>
-                          <ScoreBar label="Cred" score={src.credibility} />
-                          <ScoreBar label="Rel" score={src.relevance} />
-                        </div>
-                      </div>
-                    </div>
-                  </li>
+                    source={src}
+                    index={idx}
+                    highlighted={highlightedSourceId === src.id}
+                  />
                 ))}
               </ol>
             </section>
@@ -293,47 +270,6 @@ export default function ReportPage() {
           <aside style={{ background: 'var(--bg-2)' }} />
         </div>
       </div>
-    </div>
-  )
-}
-
-function getDomain(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, '')
-  } catch {
-    return url
-  }
-}
-
-function scoreColor(score: number): string {
-  if (score > 0.8) return 'var(--scout)'
-  if (score > 0.6) return 'var(--scribe)'
-  return 'var(--critic)'
-}
-
-function ScoreBar({ label, score }: { label: string; score: number }) {
-  const color = scoreColor(score)
-  const pct = Math.round(score * 100)
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-      <span
-        className="font-mono"
-        style={{
-          fontSize: 9,
-          color: 'var(--muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-        }}
-      >
-        {label}
-      </span>
-      <div style={{ width: 32, height: 2, background: 'var(--line)' }}>
-        <div style={{ width: `${pct}%`, height: '100%', background: color }} />
-      </div>
-      <span className="font-mono" style={{ fontSize: 9, color }}>
-        .{pct}
-      </span>
     </div>
   )
 }
