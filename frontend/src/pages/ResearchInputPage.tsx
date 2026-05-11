@@ -184,16 +184,16 @@ export default function ResearchInputPage() {
 
   return (
     <div
-      className="flex flex-col h-screen overflow-hidden"
+      className="flex flex-col min-h-screen lg:h-screen lg:overflow-hidden"
       style={{ background: 'var(--bg)', color: 'var(--fg)' }}
     >
       {/* App chrome */}
       <header
-        className="flex items-center justify-between px-8 py-4 shrink-0"
+        className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4 lg:px-8 shrink-0"
         style={{ borderBottom: '1px solid var(--line)' }}
       >
-        <div className="flex items-center gap-7">
-          <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-4 sm:gap-7 min-w-0">
+          <div className="flex items-center gap-2.5 shrink-0">
             <SynapseMark size={28} />
             <span
               className="serif"
@@ -202,7 +202,7 @@ export default function ResearchInputPage() {
               Synapse
             </span>
           </div>
-          <nav className="flex gap-[18px]">
+          <nav className="flex gap-3 sm:gap-[18px]">
             <span className="label">New brief</span>
             <Link
               to="/history"
@@ -211,18 +211,21 @@ export default function ResearchInputPage() {
             >
               Library
             </Link>
-            <span className="label" style={{ color: 'var(--muted)' }}>
+            <span className="label hidden md:inline" style={{ color: 'var(--muted)' }}>
               Sources
             </span>
-            <span className="label" style={{ color: 'var(--muted)' }}>
+            <span className="label hidden md:inline" style={{ color: 'var(--muted)' }}>
               Settings
             </span>
           </nav>
         </div>
-        <div className="flex items-center gap-3.5">
-          <span className="micro">
+        <div className="flex items-center gap-2 sm:gap-3.5 shrink-0">
+          <span className="micro hidden sm:inline">
             {/* TODO: replace hard-coded 50 with a backend setting when available. */}
             {briefCount} / 50 briefs this month
+          </span>
+          <span className="micro sm:hidden" aria-label="briefs this month">
+            {briefCount}/50
           </span>
           <div
             className="w-7 h-7 rounded-full flex items-center justify-center serif"
@@ -235,16 +238,15 @@ export default function ResearchInputPage() {
       </header>
 
       {/* Main */}
-      <div className="flex-1 grid overflow-hidden" style={{ gridTemplateColumns: '1fr 320px' }}>
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_320px] lg:overflow-hidden">
         {/* Composition column */}
-        <main className="flex flex-col overflow-auto" style={{ padding: '60px 80px' }}>
+        <main className="flex flex-col px-5 py-10 sm:px-10 sm:py-12 lg:px-20 lg:py-[60px] lg:overflow-auto">
           <div className="micro" style={{ marginBottom: 16 }}>
             {formatNow()}
           </div>
           <h1
-            className="serif m-0"
+            className="serif m-0 text-[40px] sm:text-[52px] lg:text-[64px]"
             style={{
-              fontSize: 64,
               lineHeight: 1,
               letterSpacing: '-0.03em',
               fontWeight: 300,
@@ -257,10 +259,9 @@ export default function ResearchInputPage() {
 
           {/* Topic card */}
           <div
+            className="mt-8 sm:mt-10 lg:mt-12 p-4 sm:p-6"
             style={{
-              marginTop: 48,
               border: '1px solid var(--fg)',
-              padding: 24,
               background: 'var(--bg-2)',
             }}
           >
@@ -275,9 +276,8 @@ export default function ResearchInputPage() {
               }}
               placeholder="Type your research topic here..."
               rows={1}
-              className="serif w-full bg-transparent outline-none resize-none overflow-hidden"
+              className="serif w-full bg-transparent outline-none resize-none overflow-hidden text-[20px] sm:text-[24px] lg:text-[28px]"
               style={{
-                fontSize: 28,
                 lineHeight: 1.3,
                 fontWeight: 300,
                 color: 'var(--fg)',
@@ -330,7 +330,7 @@ export default function ResearchInputPage() {
                 />
               ))}
 
-              <div className="ml-auto flex items-center gap-2">
+              <div className="flex w-full sm:w-auto sm:ml-auto items-center gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -383,23 +383,26 @@ export default function ResearchInputPage() {
           </div>
 
           {/* Recent / example questions */}
-          <div style={{ marginTop: 48 }}>
+          <div className="mt-10 sm:mt-12">
             <div className="micro" style={{ marginBottom: 14 }}>
               Or start from a recent question
             </div>
             {/* TODO: replace static examples with follow-ups from history. */}
-            <div className="grid grid-cols-2" style={{ borderTop: '1px solid var(--line-soft)' }}>
+            <div
+              className="grid grid-cols-1 sm:grid-cols-2"
+              style={{ borderTop: '1px solid var(--line-soft)' }}
+            >
               {EXAMPLE_QUESTIONS.map((q, i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={() => handleExampleClick(q)}
-                  className="flex items-start gap-3.5 text-left transition-colors hover:bg-bg-2"
+                  className={`flex items-start gap-3.5 text-left transition-colors hover:bg-bg-2 py-[18px] pr-5 ${
+                    i % 2 === 0 ? 'sm:border-r' : 'sm:pl-6'
+                  }`}
                   style={{
-                    padding: '18px 20px 18px 0',
                     borderBottom: '1px solid var(--line-soft)',
-                    borderRight: i % 2 === 0 ? '1px solid var(--line-soft)' : 'none',
-                    paddingLeft: i % 2 === 1 ? 24 : 0,
+                    borderRightColor: 'var(--line-soft)',
                   }}
                 >
                   <span
@@ -420,14 +423,12 @@ export default function ResearchInputPage() {
           </div>
         </main>
 
-        {/* Library sidebar */}
+        {/* Library sidebar — stacks below the composition column on small screens
+         * so the brief composer always gets the full viewport width. The divider
+         * switches from a top rule (stacked) to a left rule (side-by-side). */}
         <aside
-          className="overflow-auto"
-          style={{
-            borderLeft: '1px solid var(--line)',
-            padding: '24px 20px',
-            background: 'var(--bg-2)',
-          }}
+          className="px-5 py-6 sm:px-6 border-t lg:border-t-0 lg:border-l border-line lg:overflow-auto"
+          style={{ background: 'var(--bg-2)' }}
         >
           <div className="flex items-baseline justify-between" style={{ marginBottom: 16 }}>
             <span className="micro">Library — recent</span>
