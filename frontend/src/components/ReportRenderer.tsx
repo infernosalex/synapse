@@ -128,7 +128,7 @@ interface ReportRendererProps {
 
 export function ReportRenderer({ section, claimFlags, sources }: ReportRendererProps) {
   // Scribe produces raw [^sX] syntax. Pre-process to wrap in <sup data-source="sX">
-  const bodyWithFootnotes = section.body_md.replace(/\[\^(s\d+)\]/g, (match, id) => {
+  const bodyWithFootnotes = section.body_md.replace(/\[\^(s\d+)\]/g, (_match, id) => {
     const num = id.replace('s', '')
     return `<sup data-source="${id}">${num}</sup>`
   })

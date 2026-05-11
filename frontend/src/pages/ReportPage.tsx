@@ -200,6 +200,7 @@ export default function ReportPage() {
                   section={section}
                   confidence={confidence}
                   claimFlags={sectionFlags}
+                  sources={report.sources}
                 />
               </div>
               <aside style={{ background: 'var(--bg-2)' }}>
@@ -233,10 +234,57 @@ export default function ReportPage() {
                 }}
               >
                 {report.sources.map((src, idx) => (
-                  <li key={src.id} style={{ paddingBottom: 4, breakInside: 'avoid' }}>
-                    <a href={src.url} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>
-                      [{idx + 1}] {src.title}
-                    </a>
+                  <li
+                    key={src.id}
+                    id={src.id}
+                    className="source-row"
+                    style={{ paddingBottom: 12, breakInside: 'avoid' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                      <img
+                        src={`https://www.google.com/s2/favicons?domain=${getDomain(src.url)}&sz=32`}
+                        alt=""
+                        width={16}
+                        height={16}
+                        style={{ marginTop: 2, flexShrink: 0 }}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none'
+                        }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <a
+                          href={src.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ color: 'inherit', textDecoration: 'none' }}
+                        >
+                          [{idx + 1}] {src.title}
+                        </a>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            marginTop: 4,
+                            flexWrap: 'wrap',
+                          }}
+                        >
+                          <span
+                            className="font-mono"
+                            style={{
+                              fontSize: 9,
+                              color: 'var(--muted)',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.08em',
+                            }}
+                          >
+                            {getDomain(src.url)}
+                          </span>
+                          <ScoreBar label="Cred" score={src.credibility} />
+                          <ScoreBar label="Rel" score={src.relevance} />
+                        </div>
+                      </div>
+                    </div>
                   </li>
                 ))}
               </ol>
@@ -245,6 +293,47 @@ export default function ReportPage() {
           <aside style={{ background: 'var(--bg-2)' }} />
         </div>
       </div>
+    </div>
+  )
+}
+
+function getDomain(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return url
+  }
+}
+
+function scoreColor(score: number): string {
+  if (score > 0.8) return 'var(--scout)'
+  if (score > 0.6) return 'var(--scribe)'
+  return 'var(--critic)'
+}
+
+function ScoreBar({ label, score }: { label: string; score: number }) {
+  const color = scoreColor(score)
+  const pct = Math.round(score * 100)
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <span
+        className="font-mono"
+        style={{
+          fontSize: 9,
+          color: 'var(--muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+        }}
+      >
+        {label}
+      </span>
+      <div style={{ width: 32, height: 2, background: 'var(--line)' }}>
+        <div style={{ width: `${pct}%`, height: '100%', background: color }} />
+      </div>
+      <span className="font-mono" style={{ fontSize: 9, color }}>
+        .{pct}
+      </span>
     </div>
   )
 }

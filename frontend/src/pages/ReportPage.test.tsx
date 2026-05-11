@@ -78,6 +78,14 @@ const _VERIFIED_REPORT: VerifiedReport = {
         relevance: 0.88,
         snippet: 'CEE deal volume dropped 41% YoY.',
       },
+      {
+        id: 's2',
+        url: 'https://www.pitchbook.com/news/articles',
+        title: 'PitchBook News',
+        credibility: 0.75,
+        relevance: 0.6,
+        snippet: 'Global VC trends analysis.',
+      },
     ],
     contradictions: [],
     follow_ups: [],
@@ -177,5 +185,101 @@ describe('ReportPage', () => {
     renderPage()
     expect(screen.getByText(/report is being prepared/i)).toBeInTheDocument()
     expect(screen.getByText(/back to progress view/i)).toBeInTheDocument()
+  })
+
+  // —— Source panel enhancements ——
+
+  it('renders source rows with id and class for footnote targeting', () => {
+    vi.mocked(useReport).mockReturnValue({
+      data: _VERIFIED_REPORT,
+      isLoading: false,
+      error: null,
+    })
+    renderPage()
+
+    for (const src of _VERIFIED_REPORT.report.sources) {
+      const row = document.getElementById(src.id)
+      expect(row).toBeInTheDocument()
+      expect(row).toHaveClass('source-row')
+    }
+  })
+
+  it('renders favicon images via Google S2 service', () => {
+    vi.mocked(useReport).mockReturnValue({
+      data: _VERIFIED_REPORT,
+      isLoading: false,
+      error: null,
+    })
+    const { container } = renderPage()
+
+    const imgs = container.querySelectorAll('img[src*="google.com/s2/favicons"]')
+    expect(imgs.length).toBe(_VERIFIED_REPORT.report.sources.length)
+
+    for (const img of imgs) {
+      expect(img).toHaveAttribute('width', '16')
+      expect(img).toHaveAttribute('height', '16')
+    }
+  })
+
+  it('links each source to its full URL', () => {
+    vi.mocked(useReport).mockReturnValue({
+      data: _VERIFIED_REPORT,
+      isLoading: false,
+      error: null,
+    })
+    renderPage()
+
+    for (const src of _VERIFIED_REPORT.report.sources) {
+      const row = document.getElementById(src.id)
+      expect(row).toBeInTheDocument()
+      const link = row!.querySelector('a[href][target="_blank"]')
+      expect(link).toHaveAttribute('href', src.url)
+      expect(link).toHaveAttribute('target', '_blank')
+      expect(link).toHaveAttribute('rel', 'noreferrer')
+    }
+  })
+
+  it('renders domain labels extracted from URLs', () => {
+    vi.mocked(useReport).mockReturnValue({
+      data: _VERIFIED_REPORT,
+      isLoading: false,
+      error: null,
+    })
+    renderPage()
+
+    expect(screen.getByText('dealroom.co')).toBeInTheDocument()
+    expect(screen.getByText('pitchbook.com')).toBeInTheDocument()
+  })
+
+  it('renders credibility and relevance scores inside each source row', () => {
+    vi.mocked(useReport).mockReturnValue({
+      data: _VERIFIED_REPORT,
+      isLoading: false,
+      error: null,
+    })
+    renderPage()
+
+    for (const src of _VERIFIED_REPORT.report.sources) {
+      const row = document.getElementById(src.id)
+      expect(row).toBeInTheDocument()
+      const pctCred = `.${Math.round(src.credibility * 100)}`
+      const pctRel = `.${Math.round(src.relevance * 100)}`
+      expect(row!.textContent).toContain(pctCred)
+      expect(row!.textContent).toContain(pctRel)
+    }
+  })
+
+  it('renders credibility and relevance labels', () => {
+    vi.mocked(useReport).mockReturnValue({
+      data: _VERIFIED_REPORT,
+      isLoading: false,
+      error: null,
+    })
+    renderPage()
+
+    const list = screen.getByRole('list')
+    expect(list).toBeInTheDocument()
+    expect(list.textContent).toContain('Cred')
+    expect(list.textContent).toContain('Rel')
   })
 })
