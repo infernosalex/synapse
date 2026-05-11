@@ -52,7 +52,10 @@ class JobRepository:
         self._session = session
 
     async def get_job(self, job_id: UUID, *, user_id: UUID | None = None) -> ResearchJobModel:
-        """Load a job row and convert it to the API model used by the orchestrator."""
+        """Load a job row and convert it to the API model used by the orchestrator.
+
+        When `user_id` is supplied the lookup is restricted to that owner; a job that exists but belongs to someone else surfaces as `JobNotFoundError` so we don't leak existence across tenants. Pass `None` only from trusted internal callers (e.g. the orchestrator) that must read any job.
+        """
         if user_id is None:
             row = await self._session.get(orm.ResearchJob, job_id)
         else:
