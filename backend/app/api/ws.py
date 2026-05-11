@@ -14,13 +14,16 @@ from uuid import UUID
 
 import jwt
 import structlog
-from fastapi import APIRouter, FastAPI, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Depends, FastAPI, WebSocket, WebSocketDisconnect, status
 from fastapi.openapi.utils import get_openapi
 from pydantic import TypeAdapter
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.db.session import get_db
 from app.models.events import JobSnapshot, ProgressEvent
 from app.services import events as events_service
+from app.services.persistence import JobNotFoundError, JobRepository
 
 router = APIRouter()
 
@@ -34,7 +37,7 @@ _JWT_AUDIENCE = ["fastapi-users:auth"]
 _TERMINAL_EVENT_TYPES = frozenset({"job_completed", "job_failed"})
 
 
-def _user_id_from_cookie(token: str | None) -> str | None:
+def _user_id_from_cookie(token: str | None) -> UUID | None:
     if not token:
         return None
     try:
@@ -47,13 +50,28 @@ def _user_id_from_cookie(token: str | None) -> str | None:
     except jwt.PyJWTError:
         return None
     sub = payload.get("sub")
-    return sub if isinstance(sub, str) and sub else None
+    if not isinstance(sub, str) or not sub:
+        return None
+    try:
+        return UUID(sub)
+    except ValueError:
+        return None
 
 
 @router.websocket("/ws/jobs/{job_id}")
-async def jobs_ws(websocket: WebSocket, job_id: UUID) -> None:
+async def jobs_ws(
+    websocket: WebSocket,
+    job_id: UUID,
+    session: AsyncSession = Depends(get_db),
+) -> None:
     user_id = _user_id_from_cookie(websocket.cookies.get("synapse_auth"))
     if user_id is None:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
+    try:
+        job = await JobRepository(session).get_job(job_id, user_id=user_id)
+    except JobNotFoundError:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
@@ -62,7 +80,7 @@ async def jobs_ws(websocket: WebSocket, job_id: UUID) -> None:
 
     try:
         # Snapshot first so a client that connected mid-pipeline has context.
-        await websocket.send_text(JobSnapshot(job_id=job_id).model_dump_json())
+        await websocket.send_text(JobSnapshot(job_id=job_id, job=job).model_dump_json())
         async with events_service.subscribe(job_id) as stream:
             async for event in stream:
                 await websocket.send_text(event.model_dump_json())
