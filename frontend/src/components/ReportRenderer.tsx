@@ -114,7 +114,7 @@ function Footnote({ source, label, onSourceClick }: FootnoteProps) {
       <a
         href={`#${source.id}`}
         onClick={handleClick}
-        className="inline-block px-0.5 -mt-2 font-mono text-[10px] font-bold text-scout hover:text-scout/80 no-underline"
+        className="inline-block px-0.5 font-mono text-[10px] font-bold text-scout hover:text-scout/80 no-underline"
       >
         [{label}]
       </a>
@@ -173,7 +173,9 @@ export function ReportRenderer({
             const source = sourceMap.get(sourceId)
             if (!source) return <sup {...props}>{children}</sup>
             return (
-              <Footnote source={source} label={String(children)} onSourceClick={onSourceClick} />
+              <sup>
+                <Footnote source={source} label={String(children)} onSourceClick={onSourceClick} />
+              </sup>
             )
           }
           return <sup {...props}>{children}</sup>
