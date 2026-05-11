@@ -34,6 +34,7 @@ function verdictLabel(verdict: ClaimFlag['verdict']): string {
 export function MarginPanel({ section, sources, claimFlags }: MarginPanelProps) {
   const citedSources = sources.filter((s) => section.cited_source_ids?.includes(s.id))
   const sectionFlags = claimFlags.filter((f) => f.section_id === section.id)
+  const indexMap = new Map(sources.map((s, i) => [s.id, i + 1]))
 
   return (
     <div style={{ padding: '56px 24px' }}>
@@ -51,7 +52,7 @@ export function MarginPanel({ section, sources, claimFlags }: MarginPanelProps) 
             className="font-mono"
             style={{ fontSize: 9, letterSpacing: '0.1em', color: 'var(--muted)', marginBottom: 3 }}
           >
-            [{src.id}]
+            [{indexMap.get(src.id) ?? '?'}]
           </div>
           <div
             className="serif truncate"

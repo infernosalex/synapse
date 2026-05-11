@@ -1,7 +1,9 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from '@tanstack/react-router'
 
 import { MarginPanel } from '../components/MarginPanel'
 import { ReportSection } from '../components/ReportSection'
+import { SourceRow } from '../components/SourceRow'
 import { Button } from '../components/ui/Button'
 import { Chip } from '../components/ui/Chip'
 import { SynapseMark } from '../components/ui/SynapseMark'
@@ -20,6 +22,26 @@ function estimateReadingTime(sections: { body_md: string }[]): number {
 export default function ReportPage() {
   const { jobId } = useParams({ from: '/research/$jobId/report' })
   const { data, isLoading, error } = useReport(jobId)
+  const [highlightedSourceId, setHighlightedSourceId] = useState<string | null>(null)
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const scrollToSource = useCallback((id: string) => {
+    setHighlightedSourceId(id)
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    window.history.pushState(null, '', `#${id}`)
+    if (highlightTimerRef.current !== null) {
+      clearTimeout(highlightTimerRef.current)
+    }
+    highlightTimerRef.current = setTimeout(() => setHighlightedSourceId(null), 2000)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current !== null) {
+        clearTimeout(highlightTimerRef.current)
+      }
+    }
+  }, [])
 
   if (isLoading) {
     return (
@@ -200,6 +222,8 @@ export default function ReportPage() {
                   section={section}
                   confidence={confidence}
                   claimFlags={sectionFlags}
+                  sources={report.sources}
+                  onSourceClick={scrollToSource}
                 />
               </div>
               <aside style={{ background: 'var(--bg-2)' }}>
@@ -233,11 +257,12 @@ export default function ReportPage() {
                 }}
               >
                 {report.sources.map((src, idx) => (
-                  <li key={src.id} style={{ paddingBottom: 4, breakInside: 'avoid' }}>
-                    <a href={src.url} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>
-                      [{idx + 1}] {src.title}
-                    </a>
-                  </li>
+                  <SourceRow
+                    key={src.id}
+                    source={src}
+                    index={idx}
+                    highlighted={highlightedSourceId === src.id}
+                  />
                 ))}
               </ol>
             </section>
