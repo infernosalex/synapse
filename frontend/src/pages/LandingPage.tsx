@@ -28,7 +28,7 @@ export default function LandingPage() {
       <AgentsSection />
       <MethodSection />
       <FeaturePillarsSection />
-      <FooterCtaSection onSubmit={() => navigate({ to: '/register' })} />
+      <FooterCtaSection onSubmit={(email) => navigate({ to: '/register', search: { email } })} />
       <LandingFooter />
     </div>
   )

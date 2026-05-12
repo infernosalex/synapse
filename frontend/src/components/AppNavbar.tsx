@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
+import { Link } from '@tanstack/react-router'
 
 import { SynapseMark } from './ui/SynapseMark'
 
@@ -32,8 +33,8 @@ export function SynapseBrandLink({
   style,
 }: SynapseBrandLinkProps) {
   return (
-    <a
-      href="/"
+    <Link
+      to="/"
       className={className}
       style={{ textDecoration: 'none', color: 'inherit', ...style }}
       aria-label="Synapse home"
@@ -42,6 +43,6 @@ export function SynapseBrandLink({
       <span className={labelClassName} style={labelStyle}>
         Synapse
       </span>
-    </a>
+    </Link>
   )
 }

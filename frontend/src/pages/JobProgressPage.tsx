@@ -182,7 +182,7 @@ export default function JobProgressPage() {
       ? 'Completed'
       : `In progress · ${formatElapsed(elapsedSeconds)} elapsed`
 
-  // Compact status label for narrow viewports — drops the elapsed-time suffix.
+  // Compact status label for narrow viewports: keep the timer, drop extra text.
   const statusLabelShort = isFailed
     ? 'Failed'
     : currentPhase === 'done'
@@ -295,13 +295,10 @@ export default function JobProgressPage() {
                     return (
                       <div
                         key={i}
-                        className="px-4 sm:px-[22px] py-4 sm:py-[18px]"
-                        style={{
-                          borderBottom: '1px solid var(--line-soft)',
-                          // On md+ the grid is two columns; left items get a right border.
-                          // On mobile the grid collapses to one column — no right border.
-                          borderRight: !isRightColumn ? '1px solid var(--line-soft)' : 'none',
-                        }}
+                        className={cn(
+                          'border-b border-[var(--line-soft)] px-4 py-4 sm:px-[22px] sm:py-[18px]',
+                          !isRightColumn && 'md:border-r md:border-r-[var(--line-soft)]',
+                        )}
                       >
                         <div className="flex items-baseline gap-3 mb-2">
                           <span

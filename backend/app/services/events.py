@@ -23,7 +23,7 @@ from uuid import UUID
 
 import redis.asyncio as redis
 import structlog
-from pydantic import TypeAdapter
+from pydantic import TypeAdapter, ValidationError
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -166,7 +166,7 @@ async def subscribe(
                 envelope = json.loads(message["data"])
                 event_id = int(envelope["id"])
                 event = _event_adapter.validate_python(envelope["event"])
-            except (KeyError, TypeError, ValueError) as exc:
+            except (KeyError, TypeError, ValueError, ValidationError) as exc:
                 # A malformed frame is a bug in the producer, not a transport
                 # error. Log and skip rather than tear down the whole stream.
                 _log.warning(

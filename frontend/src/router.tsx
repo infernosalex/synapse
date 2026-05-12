@@ -23,6 +23,7 @@ import ResearchPreviewPage from './pages/ResearchPreviewPage'
 import { previewStateSchema } from './pages/researchPreviewState'
 
 const authSearchSchema = z.object({
+  email: z.string().optional(),
   redirect: z.string().optional(),
 })
 

@@ -24,10 +24,15 @@ export function FooterCtaSection({ onSubmit }: FooterCtaSectionProps) {
             className="mb-3 flex gap-2 border border-current p-1.5"
             onSubmit={(e) => {
               e.preventDefault()
-              onSubmit()
+              const formData = new FormData(e.currentTarget)
+              const email = formData.get('email')
+              if (typeof email === 'string') {
+                onSubmit(email)
+              }
             }}
           >
             <input
+              name="email"
               type="email"
               required
               placeholder="your.email@firm.com"

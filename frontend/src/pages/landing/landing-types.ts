@@ -8,5 +8,5 @@ export interface LandingHeroProps extends LandingCtaProps {
 }
 
 export interface FooterCtaSectionProps {
-  onSubmit: () => void
+  onSubmit: (email: string) => void
 }

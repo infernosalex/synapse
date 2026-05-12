@@ -60,7 +60,7 @@ function Field({
 
 export default function RegisterPage() {
   const navigate = useNavigate()
-  const { redirect } = useSearch({ from: '/register' })
+  const { email, redirect } = useSearch({ from: '/register' })
   const registerMutation = useRegister()
   const loginMutation = useLogin()
   const [serverError, setServerError] = useState<string | null>(null)
@@ -70,6 +70,7 @@ export default function RegisterPage() {
     handleSubmit,
     formState: { errors },
   } = useForm<RegisterFormData>({
+    defaultValues: { email: email ?? '' },
     resolver: zodResolver(registerSchema),
   })
 
