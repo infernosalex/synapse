@@ -1,5 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 
+import { ArrowRight } from 'lucide-react'
+
 import { CONSTELLATION_AGENTS, THIS_WEEK } from './landing-content'
 
 const LOOP_SECONDS = 18
@@ -168,7 +170,9 @@ export function AgentConstellation() {
       <div className="flex items-start gap-3.5">
         <div className="w-px self-stretch bg-line" />
         <div className="serif text-[13px] font-light italic leading-relaxed text-fg-2">
-          A question travels Scout → Scribe → Critic, and comes back as a report you can defend.
+          A question travels Scout <ArrowRight className="inline-block size-3 align-middle" />{' '}
+          Scribe <ArrowRight className="inline-block size-3 align-middle" /> Critic, and comes back
+          as a report you can defend.
         </div>
       </div>
     </aside>

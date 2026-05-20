@@ -126,7 +126,7 @@ export interface ConstellationAgent {
 }
 
 export const CONSTELLATION_AGENTS: readonly ConstellationAgent[] = [
-  { key: 'scout', name: 'Scout', role: 'researches', pos: { x: 90, y: 110 } },
+  { key: 'scout', name: 'Scout', role: 'researches', pos: { x: 90, y: 87 } },
   { key: 'scribe', name: 'Scribe', role: 'synthesises', pos: { x: 350, y: 110 } },
   { key: 'critic', name: 'Critic', role: 'verifies', pos: { x: 220, y: 248 } },
 ]
