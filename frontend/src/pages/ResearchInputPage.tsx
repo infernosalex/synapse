@@ -189,8 +189,8 @@ export default function ResearchInputPage() {
     >
       {/* App chrome */}
       <AppNavbar
-        className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4 lg:px-8 shrink-0"
-        style={{ borderBottom: '1px solid var(--line)' }}
+        variant="app"
+        className="flex items-center justify-between gap-3 px-4 sm:px-6 lg:px-8"
       >
         <div className="flex items-center gap-4 sm:gap-7 min-w-0">
           <SynapseBrandLink

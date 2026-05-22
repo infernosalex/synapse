@@ -89,10 +89,7 @@ export default function ReportPage() {
       style={{ background: 'var(--bg)', color: 'var(--fg)' }}
     >
       {/* App chrome */}
-      <AppNavbar
-        className="report-nav"
-        style={{ padding: '12px 28px', borderBottom: '1px solid var(--line)' }}
-      >
+      <AppNavbar variant="app" className="report-nav px-7">
         <div className="report-nav-meta">
           <SynapseBrandLink
             className="flex items-center gap-2.5 shrink-0"

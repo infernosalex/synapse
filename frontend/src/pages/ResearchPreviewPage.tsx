@@ -269,16 +269,7 @@ function PreviewContent({ initialState }: { initialState: PreviewState }) {
       style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}
     >
       {/* Top chrome */}
-      <AppNavbar
-        style={{
-          padding: '12px 28px',
-          borderBottom: '1px solid var(--line)',
-          display: 'flex',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 14,
-        }}
-      >
+      <AppNavbar variant="app" className="flex items-center flex-wrap gap-3.5 px-4 sm:px-7">
         <SynapseBrandLink
           className="flex items-center gap-2.5 shrink-0"
           labelClassName="serif"
