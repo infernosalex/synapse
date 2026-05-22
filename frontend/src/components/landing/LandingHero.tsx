@@ -21,7 +21,7 @@ export function LandingHero({ ctaText, onCtaClick, onSampleClick }: LandingHeroP
   const words = useMemo(() => LEDE.split(/\s+/), [])
 
   return (
-    <section className="flex min-h-dvh flex-col justify-center border-b border-line px-6 py-14 sm:px-10 sm:py-16 lg:px-14 lg:py-20">
+    <section className="flex flex-1 flex-col justify-center border-b border-line px-6 py-14 sm:px-10 sm:py-16 lg:px-14 lg:py-20">
       <div className="grid gap-10 lg:grid-cols-[1fr_420px] lg:gap-14 xl:grid-cols-[1fr_480px]">
         <div className="min-w-0">
           <h1

@@ -19,12 +19,14 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-bg text-fg">
-      <LandingHeader ctaText="Sign in" onCtaClick={() => navigate({ to: '/login' })} />
-      <LandingHero
-        ctaText={ctaText}
-        onCtaClick={() => navigate({ to: ctaTo })}
-        onSampleClick={() => navigate({ to: ctaTo })}
-      />
+      <div className="flex min-h-dvh flex-col">
+        <LandingHeader ctaText="Sign in" onCtaClick={() => navigate({ to: '/login' })} />
+        <LandingHero
+          ctaText={ctaText}
+          onCtaClick={() => navigate({ to: ctaTo })}
+          onSampleClick={() => navigate({ to: ctaTo })}
+        />
+      </div>
       <AgentsSection />
       <MethodSection />
       <FeaturePillarsSection />
