@@ -14,12 +14,12 @@ export default function LandingPage() {
   const user = useMe()
   const navigate = useNavigate()
 
-  const ctaText = user ? 'Start a brief →' : 'Sign in'
-  const ctaTo = user ? '/research/new' : '/login'
+  const ctaText = user ? 'Start a brief →' : 'Get started'
+  const ctaTo = user ? '/research/new' : '/register'
 
   return (
     <div className="min-h-screen bg-bg text-fg">
-      <LandingHeader ctaText={ctaText} onCtaClick={() => navigate({ to: ctaTo })} />
+      <LandingHeader ctaText="Sign in" onCtaClick={() => navigate({ to: '/login' })} />
       <LandingHero
         ctaText={ctaText}
         onCtaClick={() => navigate({ to: ctaTo })}

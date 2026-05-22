@@ -1,11 +1,25 @@
+import { Fragment, useMemo } from 'react'
+
+import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { Button } from '../../components/ui/Button'
 
-import { AgentConstellation } from './AgentConstellation'
+import { AgentPipelineHero } from './AgentPipelineHero'
 import type { LandingHeroProps } from './landing-types'
 
+// Print-magazine pacing: a brief lead-in delay, then ~38ms between words.
+// Keeps the whole reveal under ~1s so it never holds up the page.
+const WORD_STAGGER_MS = 38
+const WORD_LEAD_IN_MS = 120
+
+const LEDE =
+  'Synapse runs three agents in parallel — one researches, one writes, one pushes back — so nothing reaches you unchecked.'
+
 export function LandingHero({ ctaText, onCtaClick, onSampleClick }: LandingHeroProps) {
+  const reduced = usePrefersReducedMotion()
+  const words = useMemo(() => LEDE.split(/\s+/), [])
+
   return (
-    <section className="flex min-h-screen flex-col justify-center border-b border-line px-6 py-14 sm:px-10 sm:py-16 lg:px-14 lg:py-20">
+    <section className="flex min-h-dvh flex-col justify-center border-b border-line px-6 py-14 sm:px-10 sm:py-16 lg:px-14 lg:py-20">
       <div className="grid gap-10 lg:grid-cols-[1fr_420px] lg:gap-14 xl:grid-cols-[1fr_480px]">
         <div className="min-w-0">
           <h1
@@ -24,9 +38,22 @@ export function LandingHero({ ctaText, onCtaClick, onSampleClick }: LandingHeroP
             <br />
             itself.
           </h1>
-          <p className="serif mt-8 max-w-[580px] text-lg font-light leading-snug text-fg-2 sm:mt-9 sm:text-xl lg:text-[22px]">
-            Synapse runs three agents in parallel — one researches, one writes, one pushes back — so
-            nothing reaches you unchecked.
+          <p className="hero-lede serif mt-8 max-w-[580px] text-lg font-light leading-snug text-fg-2 sm:mt-9 sm:text-xl lg:text-[22px]">
+            {reduced
+              ? LEDE
+              : words.map((word, i) => (
+                  <Fragment key={i}>
+                    <span
+                      className="hero-word"
+                      style={{
+                        animationDelay: `${WORD_LEAD_IN_MS + i * WORD_STAGGER_MS}ms`,
+                      }}
+                    >
+                      {word}
+                    </span>
+                    {i < words.length - 1 && ' '}
+                  </Fragment>
+                ))}
           </p>
           <div className="mt-8 flex flex-wrap gap-3 sm:mt-10">
             <Button onClick={onCtaClick}>{ctaText}</Button>
@@ -36,7 +63,7 @@ export function LandingHero({ ctaText, onCtaClick, onSampleClick }: LandingHeroP
           </div>
         </div>
 
-        <AgentConstellation />
+        <AgentPipelineHero />
       </div>
     </section>
   )

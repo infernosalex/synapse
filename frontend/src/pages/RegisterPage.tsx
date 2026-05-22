@@ -101,13 +101,7 @@ export default function RegisterPage() {
       style={{ background: 'var(--bg-2)', color: 'var(--fg)' }}
     >
       {/* Paper grid */}
-      <svg
-        width="100%"
-        height="100%"
-        className="absolute inset-0 pointer-events-none"
-        style={{ opacity: 0.45 }}
-        aria-hidden
-      >
+      <svg width="100%" height="100%" className="absolute inset-0 pointer-events-none" aria-hidden>
         <defs>
           <pattern id="reg-grid" width="44" height="44" patternUnits="userSpaceOnUse">
             <path d="M 44 0 L 0 0 0 44" fill="none" stroke="var(--line-soft)" strokeWidth="0.5" />

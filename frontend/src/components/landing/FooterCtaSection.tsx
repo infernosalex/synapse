@@ -2,10 +2,7 @@ import type { FooterCtaSectionProps } from './landing-types'
 
 export function FooterCtaSection({ onSubmit }: FooterCtaSectionProps) {
   return (
-    <section
-      id="pricing"
-      className="bg-fg px-6 pb-12 pt-16 text-bg sm:px-10 sm:pt-20 lg:px-14 lg:pb-14 lg:pt-20"
-    >
+    <section id="pricing" className="bg-fg px-6 py-24 text-bg sm:px-10 sm:py-28 lg:px-14 lg:py-32">
       <div className="grid gap-10 lg:grid-cols-[2fr_1fr] lg:items-end lg:gap-12">
         <h2
           className="serif m-0 font-light"

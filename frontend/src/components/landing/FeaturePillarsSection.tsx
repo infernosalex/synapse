@@ -1,33 +1,92 @@
-import { FEATURE_PILLARS } from './landing-content'
+import { Fragment } from 'react'
+
+import { FEATURE_PILLARS, type PillarOwner } from './landing-content'
+
+const NUMERALS = ['I.', 'II.', 'III.'] as const
+
+function OwnerHandoff({ owners }: { owners: readonly PillarOwner[] }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {owners.map((o, i) => (
+        <Fragment key={`${o.label}-${i}`}>
+          {i > 0 && (
+            <span aria-hidden className="font-mono text-xs text-fg-3">
+              →
+            </span>
+          )}
+          <span className={`chip ${o.agent ?? ''}`}>
+            <span className="dot" />
+            {o.label}
+          </span>
+        </Fragment>
+      ))}
+    </div>
+  )
+}
 
 export function FeaturePillarsSection() {
   return (
-    <section className="border-b border-line px-6 py-16 sm:px-10 sm:py-20 lg:px-14 lg:py-[72px]">
-      <div className="micro mb-3">§ What you get</div>
-      <h2
-        className="serif mb-12 font-normal tracking-tight lg:mb-14"
-        style={{ fontSize: 'clamp(32px, 5.5vw, 56px)', letterSpacing: '-0.03em', margin: 0 }}
-      >
-        Built to be audited.
-      </h2>
-      <div className="mt-12 grid border-t border-fg sm:grid-cols-3">
-        {FEATURE_PILLARS.map((f, i) => (
-          <div
-            key={f.title}
-            className="flex flex-col border-b border-fg p-7 sm:p-8"
-            style={{ borderRight: i < 2 ? '1px solid var(--line)' : undefined }}
+    <section className="border-b border-line px-6 py-24 sm:px-10 sm:py-28 lg:px-14 lg:py-32">
+      <header className="mb-16 grid gap-8 lg:mb-24 lg:grid-cols-[1fr_auto] lg:items-end lg:gap-16">
+        <div>
+          <div className="micro mb-5">§ What you get</div>
+          <h2
+            className="serif font-normal"
+            style={{
+              fontSize: 'clamp(40px, 7vw, 84px)',
+              letterSpacing: '-0.035em',
+              lineHeight: 0.95,
+              margin: 0,
+            }}
           >
-            <div
-              className="serif mb-5 font-normal leading-tight tracking-tight"
-              style={{ fontSize: 'clamp(22px, 2.5vw, 30px)', letterSpacing: '-0.025em' }}
+            Built to be
+            <br />
+            <em className="font-light">defended.</em>
+          </h2>
+        </div>
+        <p className="serif max-w-md text-lg font-light leading-snug text-fg-2 lg:text-right lg:text-xl">
+          Three guarantees that travel with every report —
+          <em> so you can show your work, not just your output.</em>
+        </p>
+      </header>
+
+      <div className="grid border-t border-fg lg:grid-cols-3">
+        {FEATURE_PILLARS.map((f, i) => (
+          <article
+            key={f.title}
+            className="flex flex-col gap-8 border-b border-line py-10 last:border-b-0 sm:py-12 lg:gap-10 lg:border-b-0 lg:border-r lg:border-line lg:px-10 lg:py-14 lg:first:pl-0 lg:last:border-r-0 lg:last:pr-0"
+          >
+            <span
+              className="serif font-light leading-none text-fg-3"
+              style={{
+                fontSize: 'clamp(64px, 6vw, 96px)',
+                letterSpacing: '-0.05em',
+              }}
             >
-              {f.title}
+              {NUMERALS[i]}
+            </span>
+
+            <div>
+              <h3
+                className="serif font-normal"
+                style={{
+                  fontSize: 'clamp(28px, 2.8vw, 38px)',
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1,
+                  margin: 0,
+                }}
+              >
+                {f.title}
+              </h3>
+              <div className="mt-5">
+                <OwnerHandoff owners={f.owners} />
+              </div>
             </div>
-            <p className="serif text-base font-light leading-relaxed text-fg-2">{f.body}</p>
-            <div className="mt-auto pt-6">
-              <div className="micro">{f.tag}</div>
-            </div>
-          </div>
+
+            <p className="serif text-base font-light leading-relaxed text-fg-2 lg:text-[17px]">
+              {f.body}
+            </p>
+          </article>
         ))}
       </div>
     </section>

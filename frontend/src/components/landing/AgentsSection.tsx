@@ -4,61 +4,98 @@ export function AgentsSection() {
   return (
     <section
       id="agents"
-      className="border-b border-line px-6 py-16 sm:px-10 sm:py-20 lg:px-14 lg:py-[72px]"
+      className="border-b border-line px-6 py-24 sm:px-10 sm:py-28 lg:px-14 lg:py-32"
     >
-      <div className="mb-10 flex flex-col gap-6 sm:mb-12 md:flex-row md:items-baseline md:justify-between md:gap-10">
+      <header className="mb-16 grid gap-8 lg:mb-24 lg:grid-cols-[1fr_auto] lg:items-end lg:gap-16">
         <div>
-          <div className="micro mb-3">§ Agents</div>
+          <div className="micro mb-5">§ Agents</div>
           <h2
-            className="serif font-normal tracking-tight"
-            style={{ fontSize: 'clamp(34px, 5.5vw, 56px)', letterSpacing: '-0.03em', margin: 0 }}
-          >
-            Three minds, one desk.
-          </h2>
-        </div>
-        <div className="serif max-w-md text-base font-light italic leading-relaxed text-fg-2">
-          Each agent is fine-tuned for a single craft. They hand off in sequence, but disagree on
-          the page.
-        </div>
-      </div>
-
-      <div className="grid border-t border-fg sm:grid-cols-2 lg:grid-cols-3">
-        {AGENT_CARDS.map((a, i) => (
-          <article
-            key={a.key}
-            className="flex min-h-[380px] flex-col border-b border-fg p-7 sm:p-8 lg:min-h-[420px]"
+            className="serif font-normal"
             style={{
-              background: `var(--${a.key}-soft)`,
-              borderRight: i < AGENT_CARDS.length - 1 ? '1px solid var(--line)' : undefined,
+              fontSize: 'clamp(40px, 7vw, 84px)',
+              letterSpacing: '-0.035em',
+              lineHeight: 0.95,
+              margin: 0,
             }}
           >
-            <div className="mb-7 flex items-start justify-between">
-              <span className="serif text-sm italic text-muted">{a.num}</span>
+            Three minds,
+            <br />
+            <em className="font-light">one desk.</em>
+          </h2>
+        </div>
+        <p className="serif max-w-md text-lg font-light leading-snug text-fg-2 lg:text-right lg:text-xl">
+          Each agent is fine-tuned for a single craft. They hand off in sequence —
+          <em> and disagree on the page.</em>
+        </p>
+      </header>
+
+      <div className="grid border-t border-fg lg:grid-cols-3">
+        {AGENT_CARDS.map((a) => (
+          <article
+            key={a.key}
+            className="flex flex-col gap-8 border-b border-line py-10 last:border-b-0 sm:py-12 lg:gap-10 lg:border-b-0 lg:border-r lg:border-line lg:px-10 lg:py-14 lg:first:pl-0 lg:last:border-r-0 lg:last:pr-0"
+          >
+            <header className="flex items-start justify-between gap-6">
               <span
-                className={`agent-dot ${a.key}`}
-                style={{ width: 36, height: 36, fontSize: 16 }}
+                className="serif font-light leading-none"
+                style={{
+                  color: `var(--${a.key})`,
+                  fontSize: 'clamp(64px, 6vw, 96px)',
+                  letterSpacing: '-0.05em',
+                }}
+              >
+                {a.num}
+              </span>
+              <span
+                aria-hidden
+                className={`agent-dot ${a.key} mt-2`}
+                style={{ width: 40, height: 40, fontSize: 17 }}
               >
                 {a.name[0]}
               </span>
+            </header>
+
+            <div>
+              <h3
+                className="serif font-normal"
+                style={{
+                  fontSize: 'clamp(36px, 3.6vw, 52px)',
+                  letterSpacing: '-0.035em',
+                  lineHeight: 0.95,
+                  margin: 0,
+                }}
+              >
+                {a.name}
+              </h3>
+              <div className="label mt-3" style={{ color: `var(--${a.key})` }}>
+                {a.role}
+              </div>
+              <div
+                aria-hidden
+                className="mt-6 h-px w-12"
+                style={{ background: `var(--${a.key})` }}
+              />
             </div>
-            <div
-              className="serif font-normal leading-none tracking-tight"
-              style={{ fontSize: 'clamp(34px, 4vw, 44px)', letterSpacing: '-0.03em' }}
-            >
-              {a.name}
-            </div>
-            <div className="label mt-2" style={{ color: `var(--${a.key})` }}>
-              {a.role}
-            </div>
-            <p className="serif mt-5 text-base font-light leading-relaxed text-fg-2">{a.brief}</p>
-            <div className="mt-auto border-t border-line pt-6">
-              <div className="micro mb-2.5">Operations</div>
-              {a.ops.map((op) => (
-                <div key={op} className="font-mono py-[3px] text-[11px] text-fg-2">
-                  <span style={{ color: `var(--${a.key})`, marginRight: 8 }}>→</span>
-                  {op}
-                </div>
-              ))}
+
+            <p className="serif text-base font-light leading-relaxed text-fg-2 lg:text-[17px]">
+              {a.brief}
+            </p>
+
+            <div className="mt-auto">
+              <div className="micro mb-5">Operations</div>
+              <ol className="space-y-2.5">
+                {a.ops.map((op, idx) => (
+                  <li
+                    key={op}
+                    className="font-mono grid grid-cols-[28px_1fr] gap-3 text-[11px] leading-snug text-fg-2"
+                  >
+                    <span className="tabular-nums text-fg-3">
+                      {String(idx + 1).padStart(2, '0')}
+                    </span>
+                    <span>{op}</span>
+                  </li>
+                ))}
+              </ol>
             </div>
           </article>
         ))}
