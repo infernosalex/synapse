@@ -1,5 +1,6 @@
 import { Fragment, useMemo } from 'react'
 
+import { useFontsReady } from '../../hooks/useFontsReady'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { Button } from '../../components/ui/Button'
 
@@ -16,6 +17,7 @@ const LEDE =
 
 export function LandingHero({ ctaText, onCtaClick, onSampleClick }: LandingHeroProps) {
   const reduced = usePrefersReducedMotion()
+  const fontsReady = useFontsReady()
   const words = useMemo(() => LEDE.split(/\s+/), [])
 
   return (
@@ -39,7 +41,7 @@ export function LandingHero({ ctaText, onCtaClick, onSampleClick }: LandingHeroP
             itself.
           </h1>
           <p className="hero-lede serif mt-8 max-w-[580px] text-lg font-light leading-snug text-fg-2 sm:mt-9 sm:text-xl lg:text-[22px]">
-            {reduced
+            {reduced || !fontsReady
               ? LEDE
               : words.map((word, i) => (
                   <Fragment key={i}>

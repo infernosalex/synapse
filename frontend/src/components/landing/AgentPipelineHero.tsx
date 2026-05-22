@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 
+import { useFontsReady } from '../../hooks/useFontsReady'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 
 import { PIPELINE_RUNS, type AgentKey, type DraftToken } from './landing-content'
@@ -36,13 +37,14 @@ function progressIn(t: number, span: readonly [number, number]): number {
 
 export function AgentPipelineHero() {
   const reduced = usePrefersReducedMotion()
+  const fontsReady = useFontsReady()
   // When motion is reduced we freeze at the "rest" phase of the first run:
   // everything fully revealed, no loop, no animation.
   const [t, setT] = useState(0)
   const [runIdx, setRunIdx] = useState(0)
 
   useEffect(() => {
-    if (reduced) return
+    if (reduced || !fontsReady) return
     let raf = 0
     let start: number | null = null
     let lastCycle = 0
@@ -59,7 +61,7 @@ export function AgentPipelineHero() {
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [reduced])
+  }, [reduced, fontsReady])
 
   const run = PIPELINE_RUNS[runIdx]
 

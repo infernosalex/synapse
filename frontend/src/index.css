@@ -58,10 +58,10 @@
   --line: var(--rule);
   --line-soft: var(--rule-soft);
 
-  /* Type stacks */
-  --serif: 'Fraunces', 'Times New Roman', serif;
-  --sans: 'Inter Tight', 'Helvetica Neue', system-ui, sans-serif;
-  --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  /* Type stacks — family names must match Fontsource's @font-face declarations */
+  --serif: 'Fraunces Variable', 'Times New Roman', serif;
+  --sans: 'Inter Tight Variable', 'Helvetica Neue', system-ui, sans-serif;
+  --mono: 'JetBrains Mono Variable', ui-monospace, Menlo, monospace;
 }
 
 [data-theme='dark'] {
