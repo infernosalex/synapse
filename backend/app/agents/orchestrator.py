@@ -38,7 +38,7 @@ from app.models.research import (
     Source,
 )
 from app.services.events import publish as default_publish
-from app.services.persistence import JobRepository
+from app.services.persistence import JobRepository, load_sources
 from app.services.search import ExaSearchClient
 
 _log = structlog.get_logger(__name__)
@@ -55,6 +55,8 @@ class GraphState(TypedDict):
     job_id: UUID
     topic: str
     sub_questions_override: NotRequired[list[str]]
+    # Parent job's sources, present only for follow-up child jobs. Scout prepends them to its fresh search hits so the child reuses the parent's evidence.
+    seed_sources: NotRequired[list[Source]]
     sub_questions: NotRequired[list[str]]
     sources: NotRequired[list[Source]]
     report: NotRequired[ScribeReport]
@@ -82,6 +84,7 @@ def _build_graph(
                 agent=scout_agent,
                 publish=publish,
                 sub_questions_override=state.get("sub_questions_override") or None,
+                seed_sources=state.get("seed_sources") or None,
             )
             async with session_factory() as session:
                 repo = JobRepository(session)
@@ -165,7 +168,11 @@ async def run_pipeline(
     The shared `httpx.AsyncClient` for Exa is owned by this function unless the caller supplies one (used in tests to share a respx mount).
     """
     async with session_factory() as session:
-        job = await JobRepository(session).get_job(job_id)
+        repo = JobRepository(session)
+        job = await repo.get_job(job_id)
+        # Follow-up child jobs reuse their parent's gathered sources. Loading them here (once, up front) keeps the scout node's seam free of DB lookups.
+        parent_id = await repo.get_follow_up_parent_id(job_id)
+        seed_sources = await load_sources(session, parent_id) if parent_id else None
 
     owns_http = http_client is None
     http = http_client or httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0))
@@ -189,6 +196,8 @@ async def run_pipeline(
             initial: GraphState = {"job_id": job_id, "topic": job.topic}
             if job.sub_questions:
                 initial["sub_questions_override"] = job.sub_questions
+            if seed_sources:
+                initial["seed_sources"] = seed_sources
             final_state = await runner(initial)
         except Exception as exc:
             # Defensive: an exception escaping a node means the node's own
