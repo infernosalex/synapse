@@ -12,6 +12,8 @@ import html
 import re
 
 import weasyprint
+from lxml.html import defs
+from lxml_html_clean import Cleaner
 from markdown_it import MarkdownIt
 
 from app.models.research import ClaimFlag, ReportSection, Verdict, VerifiedReport
@@ -22,6 +24,18 @@ _SPAN_CLAIM_RE = re.compile(
 )
 _FOOTNOTE_REF_RE = re.compile(r"\[\^?(s\d+)\]")
 _FLAGGED_VERDICTS = {Verdict.UNSUPPORTED, Verdict.CONTRADICTED}
+
+# Report markdown is LLM-generated from untrusted web-search content, and the
+# renderer enables raw HTML so Scribe's `<span data-claim>` markers survive into
+# the PDF. The React renderer gates the same trust boundary with rehype-sanitize;
+# the PDF path must apply an equivalent allow-list (keep span/data-claim, strip
+# scripts, event handlers, and javascript: URLs) before handing HTML to WeasyPrint.
+_PDF_SAFE_ATTRS = frozenset(defs.safe_attrs) | {"data-claim"}
+_html_cleaner = Cleaner(safe_attrs_only=True, safe_attrs=_PDF_SAFE_ATTRS)
+
+
+def _render_safe_markdown(md: MarkdownIt, source: str) -> str:
+    return str(_html_cleaner.clean_html(md.render(source)))
 
 
 def _strip_claim_spans(text: str) -> str:
@@ -352,7 +366,7 @@ def build_html(verified: VerifiedReport) -> str:
     parts += [
         '<div class="summary">',
         '<p class="micro">Executive Summary</p>',
-        md.render(r.summary_md),
+        _render_safe_markdown(md, r.summary_md),
         "</div>",
     ]
 
@@ -360,7 +374,7 @@ def build_html(verified: VerifiedReport) -> str:
         parts += [
             '<section class="report-section">',
             f'<h2><span class="section-num">§ {i}</span> {html.escape(section.heading)}</h2>',
-            md.render(section.body_md),
+            _render_safe_markdown(md, section.body_md),
             "</section>",
         ]
 

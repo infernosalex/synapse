@@ -193,6 +193,34 @@ def test_build_html_contains_source_list() -> None:
     assert "Example Source" in html
 
 
+def test_build_html_strips_script_from_body() -> None:
+    verified = _make_verified(body_md="Legit text.<script>alert('xss')</script>")
+    html = build_html(verified)
+    assert "<script>" not in html
+    assert "alert('xss')" not in html
+    assert "Legit text." in html
+
+
+def test_build_html_strips_event_handler_and_js_url_from_summary() -> None:
+    verified = _make_verified(
+        summary_md='<img src="x" onerror="alert(1)"><a href="javascript:alert(2)">link</a>'
+    )
+    html = build_html(verified)
+    assert "onerror" not in html
+    assert "javascript:" not in html
+
+
+def test_build_html_sanitization_keeps_claim_spans() -> None:
+    """The sanitizer must not strip Scribe's data-claim markers — the PDF
+    verdict decoration depends on them surviving."""
+    verified = _make_verified(
+        body_md='<span data-claim="sec1.c1">claim</span><script>bad()</script>'
+    )
+    html = build_html(verified)
+    assert 'data-claim="sec1.c1"' in html
+    assert "<script>" not in html
+
+
 async def test_render_pdf_calls_weasyprint_with_html_string() -> None:
     verified = _make_verified()
     fake_pdf = b"%PDF-fake"
