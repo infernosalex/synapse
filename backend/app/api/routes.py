@@ -16,6 +16,8 @@ from app.db.session import get_db
 from app.middleware.ratelimit import limiter
 from app.models import orm
 from app.models.research import (
+    FollowUpRequest,
+    JobLineage,
     JobStatus,
     PreviewResponse,
     ResearchJob,
@@ -111,6 +113,93 @@ async def preview_research(
                 detail="Scout could not decompose the topic into sub-questions after retries.",
             ) from exc
     return PreviewResponse(sub_questions=sub_questions)
+
+
+@router.post(
+    "/research/{job_id}/follow-up",
+    response_model=ResearchJob,
+    status_code=status.HTTP_202_ACCEPTED,
+    tags=["research"],
+)
+@limiter.limit("4/minute")
+async def start_follow_up(
+    request: Request,
+    job_id: UUID,
+    payload: FollowUpRequest,
+    user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_db),
+) -> ResearchJob:
+    """Spawn a child research job that follows up on a completed report.
+
+    The child inherits the parent's language, depth, and per-agent models, and its single sub-question is the follow-up question — so the worker skips Scout's decompose step. The orchestrator separately seeds the child with the parent's sources (resolved via the FollowUp edge written here), so the run reuses the parent's evidence on top of a fresh, question-scoped search.
+    """
+    repo = JobRepository(session)
+    try:
+        parent = await repo.get_job(job_id, user_id=user.id)
+    except JobNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.") from exc
+
+    if parent.status is not JobStatus.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only a completed report can be followed up.",
+        )
+
+    now = datetime.now(UTC)
+    child = orm.ResearchJob(
+        user_id=user.id,
+        topic=payload.question,
+        language=parent.language,
+        depth=parent.depth.value,
+        models=dict(parent.models),
+        sub_questions_override=[payload.question],
+        status=JobStatus.PENDING.value,
+        progress=0.0,
+        created_at=now,
+        updated_at=now,
+    )
+    session.add(child)
+    await session.commit()
+    await session.refresh(child)
+
+    # The FollowUp edge is what makes the orchestrator treat this as a child and seed it with the parent's sources, so it must be committed before the task runs.
+    session.add(
+        orm.FollowUp(parent_job_id=job_id, child_job_id=child.id, question=payload.question)
+    )
+    await session.commit()
+
+    await run_research_pipeline.kiq(child.id)
+
+    return ResearchJob(
+        id=child.id,
+        topic=child.topic,
+        language=child.language,
+        depth=parent.depth,
+        models=child.models,
+        sub_questions=child.sub_questions_override,
+        status=JobStatus(child.status),
+        progress=child.progress,
+        created_at=child.created_at,
+        updated_at=child.updated_at,
+    )
+
+
+@router.get(
+    "/research/{job_id}/lineage",
+    response_model=JobLineage,
+    status_code=status.HTTP_200_OK,
+    tags=["research"],
+)
+async def get_job_lineage(
+    job_id: UUID,
+    user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_db),
+) -> JobLineage:
+    """Return a job's immediate follow-up lineage: its parent (if any) and its children."""
+    try:
+        return await JobRepository(session).get_lineage(job_id, user_id=user.id)
+    except JobNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.") from exc
 
 
 @router.get(
