@@ -167,9 +167,7 @@ async def test_start_research_marks_job_failed_when_enqueue_fails(
             "app.api.routes.run_research_pipeline.kiq",
             new=AsyncMock(side_effect=ConnectionError("broker down")),
         ),
-        patch(
-            "app.api.routes.JobRepository.mark_failed", new=AsyncMock()
-        ) as mark_failed,
+        patch("app.api.routes.JobRepository.mark_failed", new=AsyncMock()) as mark_failed,
     ):
         response = await authed_client.post(
             "/api/research",
