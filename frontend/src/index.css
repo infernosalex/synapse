@@ -156,13 +156,16 @@
     line-height: 1.4;
   }
 
-  /* Fraunces benefits from optical sizing on display copy.
-   * SOFT/WONK variation axes calm the default contrast. */
+  /* Fraunces benefits from optical sizing, but `auto` maxes out stroke contrast
+   * at the display end of the `opsz` axis — large light-weight headlines thin
+   * crossbars (e.g. the bar inside "e") to a sub-pixel hairline the rasterizer
+   * drops. Pin a mid optical size globally; SOFT/WONK calm the default contrast. */
   .serif,
   .font-serif {
     font-family: var(--serif);
-    font-optical-sizing: auto;
+    font-optical-sizing: none;
     font-variation-settings:
+      'opsz' 40,
       'SOFT' 50,
       'WONK' 0;
   }
