@@ -154,6 +154,31 @@ async def get_report(
         ) from exc
 
 
+@router.delete(
+    "/research/{job_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["research"],
+)
+async def delete_research(
+    job_id: UUID,
+    user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_db),
+) -> Response:
+    """Delete one of the caller's research jobs and everything derived from it.
+
+    Follow-up children are not deleted — the parent/child link is dropped and they
+    remain as standalone research jobs.
+    """
+    repo = JobRepository(session)
+    try:
+        # Scope to the owner so other tenants' jobs surface as 404, not a silent delete.
+        await repo.delete_job(job_id, user_id=user.id)
+    except JobNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.") from exc
+    await session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @router.get(
     "/research/{job_id}/export/markdown",
     tags=["research"],

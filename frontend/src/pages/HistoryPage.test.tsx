@@ -19,10 +19,13 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
 })
 
 vi.mock('../hooks/useResearchHistory', () => ({ useResearchHistory: vi.fn() }))
+vi.mock('../hooks/useDeleteResearch', () => ({ useDeleteResearch: vi.fn() }))
 
 import { useResearchHistory } from '../hooks/useResearchHistory'
+import { useDeleteResearch } from '../hooks/useDeleteResearch'
 
 const fetchNextPage = vi.fn()
+const deleteMutate = vi.fn()
 
 function mockHook(overrides: Record<string, unknown>) {
   vi.mocked(useResearchHistory).mockReturnValue({
@@ -58,6 +61,10 @@ function page(items: JobSummary[], total = items.length) {
 describe('HistoryPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(useDeleteResearch).mockReturnValue({
+      mutate: deleteMutate,
+      isPending: false,
+    } as unknown as ReturnType<typeof useDeleteResearch>)
   })
 
   it('shows a loading state', () => {
@@ -111,5 +118,30 @@ describe('HistoryPage', () => {
     const button = screen.getByRole('button', { name: /load more/i })
     await userEvent.click(button)
     expect(fetchNextPage).toHaveBeenCalledOnce()
+  })
+
+  it('asks for confirmation before deleting and does not delete on first click', async () => {
+    mockHook(page([job()]))
+    render(<HistoryPage />)
+    await userEvent.click(screen.getByRole('button', { name: /delete why has eastern/i }))
+    expect(screen.getByText('Delete?')).toBeInTheDocument()
+    expect(deleteMutate).not.toHaveBeenCalled()
+  })
+
+  it('deletes the job when the confirmation is accepted', async () => {
+    mockHook(page([job({ id: 'job-42' })]))
+    render(<HistoryPage />)
+    await userEvent.click(screen.getByRole('button', { name: /delete why has eastern/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^yes$/i }))
+    expect(deleteMutate).toHaveBeenCalledWith('job-42')
+  })
+
+  it('cancels the confirmation without deleting', async () => {
+    mockHook(page([job()]))
+    render(<HistoryPage />)
+    await userEvent.click(screen.getByRole('button', { name: /delete why has eastern/i }))
+    await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    expect(screen.queryByText('Delete?')).not.toBeInTheDocument()
+    expect(deleteMutate).not.toHaveBeenCalled()
   })
 })

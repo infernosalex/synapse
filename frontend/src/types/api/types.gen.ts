@@ -1196,6 +1196,36 @@ export type GetReportApiResearchJobIdReportGetResponses = {
 
 export type GetReportApiResearchJobIdReportGetResponse = GetReportApiResearchJobIdReportGetResponses[keyof GetReportApiResearchJobIdReportGetResponses];
 
+export type DeleteResearchApiResearchJobIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Job Id
+         */
+        job_id: string;
+    };
+    query?: never;
+    url: '/api/research/{job_id}';
+};
+
+export type DeleteResearchApiResearchJobIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteResearchApiResearchJobIdDeleteError = DeleteResearchApiResearchJobIdDeleteErrors[keyof DeleteResearchApiResearchJobIdDeleteErrors];
+
+export type DeleteResearchApiResearchJobIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteResearchApiResearchJobIdDeleteResponse = DeleteResearchApiResearchJobIdDeleteResponses[keyof DeleteResearchApiResearchJobIdDeleteResponses];
+
 export type ExportMarkdownApiResearchJobIdExportMarkdownGetData = {
     body?: never;
     path: {

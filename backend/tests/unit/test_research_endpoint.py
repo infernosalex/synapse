@@ -460,3 +460,45 @@ async def test_list_research_rejects_out_of_range_params(
 ) -> None:
     response = await authed_client_stub_db.get(f"/api/research?{query}")
     assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# DELETE /api/research/{job_id}
+# ---------------------------------------------------------------------------
+
+
+async def test_delete_research_requires_auth(client: AsyncClient) -> None:
+    response = await client.delete(f"/api/research/{_JOB_ID}")
+    assert response.status_code == 401
+
+
+async def test_delete_research_returns_204_on_success(
+    authed_client: AsyncClient, fake_session: _FakeSession
+) -> None:
+    with patch("app.api.routes.JobRepository.delete_job", new=AsyncMock(return_value=None)):
+        response = await authed_client.delete(f"/api/research/{_JOB_ID}")
+    assert response.status_code == 204
+    assert response.content == b""
+    # The route must commit so the delete is durable.
+    assert fake_session.commits == 1
+
+
+async def test_delete_research_not_found(authed_client_stub_db: AsyncClient) -> None:
+    with patch(
+        "app.api.routes.JobRepository.delete_job",
+        new=AsyncMock(side_effect=JobNotFoundError("not found")),
+    ):
+        response = await authed_client_stub_db.delete(f"/api/research/{_JOB_ID}")
+    assert response.status_code == 404
+
+
+async def test_delete_research_scopes_to_current_user(
+    authed_client: AsyncClient,
+) -> None:
+    """The route must scope the delete to the caller so other tenants' jobs surface as 404, not a silent delete."""
+    mock = AsyncMock(return_value=None)
+    with patch("app.api.routes.JobRepository.delete_job", new=mock):
+        await authed_client.delete(f"/api/research/{_JOB_ID}")
+    assert mock.await_count == 1
+    _, kwargs = mock.await_args
+    assert "user_id" in kwargs and isinstance(kwargs["user_id"], UUID)

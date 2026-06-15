@@ -237,6 +237,20 @@ class JobRepository:
         await self._session.flush()
         return row.id
 
+    async def delete_job(self, job_id: UUID, *, user_id: UUID) -> None:
+        """Delete a job and everything hanging off it: sources, report, annotations, events, and the FollowUp edges that reference it.
+
+        Scoped to the owner — a job that exists but belongs to someone else surfaces as `JobNotFoundError` so we don't leak existence across tenants. Every child FK is `ondelete="CASCADE"`, so the DELETE on the job row cascades at the database level (no ORM object load needed). Follow-up children survive: only the FollowUp edge rows are removed, so derived jobs become standalone rather than disappearing.
+        """
+        owned = select(orm.ResearchJob.id).where(
+            orm.ResearchJob.id == job_id,
+            orm.ResearchJob.user_id == user_id,
+        )
+        if (await self._session.execute(owned)).scalar_one_or_none() is None:
+            msg = f"research job {job_id} not found"
+            raise JobNotFoundError(msg)
+        await self._session.execute(delete(orm.ResearchJob).where(orm.ResearchJob.id == job_id))
+
     async def _require_row(self, job_id: UUID) -> orm.ResearchJob:
         row = await self._session.get(orm.ResearchJob, job_id)
         if row is None:

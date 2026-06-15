@@ -669,6 +669,48 @@
         }
       }
     },
+    "/api/research/{job_id}": {
+      "delete": {
+        "tags": [
+          "research"
+        ],
+        "summary": "Delete Research",
+        "description": "Delete one of the caller's research jobs and everything derived from it.\n\nFollow-up children are not deleted \u2014 the parent/child link is dropped and they\nremain as standalone research jobs.",
+        "operationId": "delete_research_api_research__job_id__delete",
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/research/{job_id}/export/markdown": {
       "get": {
         "tags": [

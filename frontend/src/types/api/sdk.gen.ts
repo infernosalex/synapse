@@ -2,7 +2,7 @@
 
 import { type Client, type Options as Options2, type TDataShape, urlSearchParamsBodySerializer } from './client';
 import { client } from './client.gen';
-import type { AuthCookieLoginApiAuthLoginPostData, AuthCookieLoginApiAuthLoginPostErrors, AuthCookieLoginApiAuthLoginPostResponses, AuthCookieLogoutApiAuthLogoutPostData, AuthCookieLogoutApiAuthLogoutPostErrors, AuthCookieLogoutApiAuthLogoutPostResponses, ExportMarkdownApiResearchJobIdExportMarkdownGetData, ExportMarkdownApiResearchJobIdExportMarkdownGetErrors, ExportMarkdownApiResearchJobIdExportMarkdownGetResponses, ExportPdfApiResearchJobIdExportPdfGetData, ExportPdfApiResearchJobIdExportPdfGetErrors, ExportPdfApiResearchJobIdExportPdfGetResponses, GetReportApiResearchJobIdReportGetData, GetReportApiResearchJobIdReportGetErrors, GetReportApiResearchJobIdReportGetResponses, HealthHealthGetData, HealthHealthGetResponses, ListResearchApiResearchGetData, ListResearchApiResearchGetErrors, ListResearchApiResearchGetResponses, PreviewResearchApiResearchPreviewPostData, PreviewResearchApiResearchPreviewPostErrors, PreviewResearchApiResearchPreviewPostResponses, RegisterRegisterApiAuthRegisterPostData, RegisterRegisterApiAuthRegisterPostErrors, RegisterRegisterApiAuthRegisterPostResponses, StartResearchApiResearchPostData, StartResearchApiResearchPostErrors, StartResearchApiResearchPostResponses, UsersCurrentUserApiAuthUsersMeGetData, UsersCurrentUserApiAuthUsersMeGetErrors, UsersCurrentUserApiAuthUsersMeGetResponses, UsersDeleteUserApiAuthUsersIdDeleteData, UsersDeleteUserApiAuthUsersIdDeleteErrors, UsersDeleteUserApiAuthUsersIdDeleteResponses, UsersPatchCurrentUserApiAuthUsersMePatchData, UsersPatchCurrentUserApiAuthUsersMePatchErrors, UsersPatchCurrentUserApiAuthUsersMePatchResponses, UsersPatchUserApiAuthUsersIdPatchData, UsersPatchUserApiAuthUsersIdPatchErrors, UsersPatchUserApiAuthUsersIdPatchResponses, UsersUserApiAuthUsersIdGetData, UsersUserApiAuthUsersIdGetErrors, UsersUserApiAuthUsersIdGetResponses } from './types.gen';
+import type { AuthCookieLoginApiAuthLoginPostData, AuthCookieLoginApiAuthLoginPostErrors, AuthCookieLoginApiAuthLoginPostResponses, AuthCookieLogoutApiAuthLogoutPostData, AuthCookieLogoutApiAuthLogoutPostErrors, AuthCookieLogoutApiAuthLogoutPostResponses, DeleteResearchApiResearchJobIdDeleteData, DeleteResearchApiResearchJobIdDeleteErrors, DeleteResearchApiResearchJobIdDeleteResponses, ExportMarkdownApiResearchJobIdExportMarkdownGetData, ExportMarkdownApiResearchJobIdExportMarkdownGetErrors, ExportMarkdownApiResearchJobIdExportMarkdownGetResponses, ExportPdfApiResearchJobIdExportPdfGetData, ExportPdfApiResearchJobIdExportPdfGetErrors, ExportPdfApiResearchJobIdExportPdfGetResponses, GetReportApiResearchJobIdReportGetData, GetReportApiResearchJobIdReportGetErrors, GetReportApiResearchJobIdReportGetResponses, HealthHealthGetData, HealthHealthGetResponses, ListResearchApiResearchGetData, ListResearchApiResearchGetErrors, ListResearchApiResearchGetResponses, PreviewResearchApiResearchPreviewPostData, PreviewResearchApiResearchPreviewPostErrors, PreviewResearchApiResearchPreviewPostResponses, RegisterRegisterApiAuthRegisterPostData, RegisterRegisterApiAuthRegisterPostErrors, RegisterRegisterApiAuthRegisterPostResponses, StartResearchApiResearchPostData, StartResearchApiResearchPostErrors, StartResearchApiResearchPostResponses, UsersCurrentUserApiAuthUsersMeGetData, UsersCurrentUserApiAuthUsersMeGetErrors, UsersCurrentUserApiAuthUsersMeGetResponses, UsersDeleteUserApiAuthUsersIdDeleteData, UsersDeleteUserApiAuthUsersIdDeleteErrors, UsersDeleteUserApiAuthUsersIdDeleteResponses, UsersPatchCurrentUserApiAuthUsersMePatchData, UsersPatchCurrentUserApiAuthUsersMePatchErrors, UsersPatchCurrentUserApiAuthUsersMePatchResponses, UsersPatchUserApiAuthUsersIdPatchData, UsersPatchUserApiAuthUsersIdPatchErrors, UsersPatchUserApiAuthUsersIdPatchResponses, UsersUserApiAuthUsersIdGetData, UsersUserApiAuthUsersIdGetErrors, UsersUserApiAuthUsersIdGetResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -198,6 +198,24 @@ export const getReportApiResearchJobIdReportGet = <ThrowOnError extends boolean 
             type: 'apiKey'
         }],
     url: '/api/research/{job_id}/report',
+    ...options
+});
+
+/**
+ * Delete Research
+ *
+ * Delete one of the caller's research jobs and everything derived from it.
+ *
+ * Follow-up children are not deleted — the parent/child link is dropped and they
+ * remain as standalone research jobs.
+ */
+export const deleteResearchApiResearchJobIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteResearchApiResearchJobIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteResearchApiResearchJobIdDeleteResponses, DeleteResearchApiResearchJobIdDeleteErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'synapse_auth',
+            type: 'apiKey'
+        }],
+    url: '/api/research/{job_id}',
     ...options
 });
 

@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 
 import { AppNavbar, SynapseBrandLink } from '../components/AppNavbar'
 import { Button } from '../components/ui/Button'
 import { Chip } from '../components/ui/Chip'
 import type { Agent } from '../components/ui/Agent'
+import { useDeleteResearch } from '../hooks/useDeleteResearch'
 import { useResearchHistory } from '../hooks/useResearchHistory'
 import type { JobStatus, JobSummary } from '../types/api'
 
@@ -164,6 +166,9 @@ function HistoryRow({ job }: { job: JobSummary }) {
   const confidencePct =
     job.overall_confidence != null ? Math.round(job.overall_confidence * 100) : null
 
+  const deleteResearch = useDeleteResearch()
+  const [confirming, setConfirming] = useState(false)
+
   const meta = [formatDate(job.created_at)]
   if (done) {
     meta.push(`${job.source_count ?? 0} sources`)
@@ -226,6 +231,39 @@ function HistoryRow({ job }: { job: JobSummary }) {
         <Chip agent={status.agent} dot>
           {status.label}
         </Chip>
+        {confirming ? (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="micro" style={{ color: 'var(--muted)' }}>
+              Delete?
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={deleteResearch.isPending}
+              onClick={() => deleteResearch.mutate(job.id)}
+              style={{ color: 'var(--critic)' }}
+            >
+              {deleteResearch.isPending ? 'Deleting…' : 'Yes'}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={deleteResearch.isPending}
+              onClick={() => setConfirming(false)}
+            >
+              Cancel
+            </Button>
+          </span>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={`Delete ${job.topic}`}
+            onClick={() => setConfirming(true)}
+          >
+            Delete
+          </Button>
+        )}
       </div>
     </li>
   )
