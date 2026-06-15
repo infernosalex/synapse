@@ -14,6 +14,7 @@ report covers AI used as part of the *engineering process*.
 | --- | --- | --- |
 | **Claude Code** | Agentic coding assistant (plan → edit → run → verify in the terminal) | `CLAUDE.md` → `AGENTS.md` (the operating manual written for AI agents), `.claude/` settings, plan files |
 | **GitHub Copilot** | Automated pull-request code review | Review-response commits, e.g. `2b843e7` ("address copilot review …"), `a1128f2` ("address copilot review …") |
+| **Kimi** (Moonshot AI) | Chat assistant, used ad hoc | Drafting one implementation section during coding |
 
 `AGENTS.md` is the single source of truth that constrains every AI tool: code style, repository
 layout, testing rules, commit conventions, and "ask, don't guess" boundaries (schema/migration
@@ -43,6 +44,12 @@ guardrails apply whether a human or an agent is making the change.
 - **GitHub Copilot** reviewed pull requests automatically; its comments led to concrete fixes
   (input-validation hardening, an SSRF guard, dead-CSS removal, tighter regexes — see
   `a1128f2`, `2b843e7`).
+- **Kimi** (Moonshot AI) was used during coding to draft one implementation section. It served as a
+  second model to sketch an approach and produce an initial version of the code, which was then
+  reviewed, adapted to the project's conventions in `AGENTS.md`, and integrated. Using a different
+  model for a focused piece of work is useful as a cross-check — a second perspective on how to
+  structure the solution — and the output went through the same review and automated checks
+  (`ruff`/`mypy`, `prettier`/`eslint`/`tsc`) as everything else before landing.
 - Generated code is treated as a draft to be reviewed, not as trusted output. Human review and the
   automated checks are the gate.
 
