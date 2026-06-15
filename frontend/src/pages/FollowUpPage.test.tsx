@@ -58,12 +58,12 @@ function renderPage() {
 }
 
 describe('FollowUpPage', () => {
-  const mutateAsync = vi.fn()
+  const mutate = vi.fn()
 
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(useStartFollowUp).mockReturnValue({
-      mutateAsync,
+      mutate,
       isPending: false,
       error: null,
     } as unknown as ReturnType<typeof useStartFollowUp>)
@@ -97,7 +97,11 @@ describe('FollowUpPage', () => {
   })
 
   it('submits the question and navigates to the child progress view', async () => {
-    mutateAsync.mockResolvedValue({ id: 'child-009' })
+    mutate.mockImplementation(
+      (_question: string, opts: { onSuccess: (child: { id: string }) => void }) => {
+        opts.onSuccess({ id: 'child-009' })
+      },
+    )
     vi.mocked(useReport).mockReturnValue({
       data: mockReport([]),
       isLoading: false,
@@ -109,7 +113,7 @@ describe('FollowUpPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /launch follow-up/i }))
 
     await waitFor(() => {
-      expect(mutateAsync).toHaveBeenCalledWith('What changed in 2024?')
+      expect(mutate).toHaveBeenCalledWith('What changed in 2024?', expect.anything())
       expect(mockNavigate).toHaveBeenCalledWith({
         to: '/research/$jobId',
         params: { jobId: 'child-009' },
@@ -127,7 +131,7 @@ describe('FollowUpPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /launch follow-up/i }))
 
-    expect(mutateAsync).not.toHaveBeenCalled()
+    expect(mutate).not.toHaveBeenCalled()
     expect(await screen.findByRole('alert')).toHaveTextContent(/at least 3 characters/i)
   })
 })

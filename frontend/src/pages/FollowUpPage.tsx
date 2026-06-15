@@ -32,9 +32,15 @@ export default function FollowUpPage() {
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(formSchema), defaultValues: { question: '' } })
 
-  const onSubmit: SubmitHandler<FormData> = async ({ question }) => {
-    const child = await followUp.mutateAsync(question)
-    navigate({ to: '/research/$jobId', params: { jobId: child.id } })
+  const onSubmit: SubmitHandler<FormData> = ({ question }) => {
+    // Navigate from the mutation's success callback rather than awaiting
+    // `mutateAsync`, so a rejected request surfaces through `followUp.error`
+    // instead of becoming an unhandled promise rejection.
+    followUp.mutate(question, {
+      onSuccess: (child) => {
+        navigate({ to: '/research/$jobId', params: { jobId: child.id } })
+      },
+    })
   }
 
   const suggestions = data?.report.follow_ups ?? []
@@ -186,7 +192,7 @@ export default function FollowUpPage() {
             </Link>
           </div>
           <p className="micro" style={{ color: 'var(--muted)' }}>
-            Reuses this report&apos;s sources and inherits its models, language, and depth.
+            Reuses this report&apos;s sources and inherits its models and language.
           </p>
         </form>
       </div>
