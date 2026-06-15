@@ -178,7 +178,7 @@ export const previewResearchApiResearchPreviewPost = <ThrowOnError extends boole
  *
  * Spawn a child research job that follows up on a completed report.
  *
- * The child inherits the parent's language, depth, and per-agent models, and its single sub-question is the follow-up question — so the worker skips Scout's decompose step. The orchestrator separately seeds the child with the parent's sources (resolved via the FollowUp edge written here), so the run reuses the parent's evidence on top of a fresh, question-scoped search.
+ * The child inherits the parent's language, depth, and per-agent models, and its single sub-question is the follow-up question — so the worker skips Scout's decompose step. The orchestrator separately seeds the child with the parent's sources (resolved via the FollowUp edge written here), so the run reuses the parent's evidence on top of a fresh, question-scoped search. Follow-up chains are capped at `_MAX_FOLLOW_UP_DEPTH`.
  */
 export const startFollowUpApiResearchJobIdFollowUpPost = <ThrowOnError extends boolean = false>(options: Options<StartFollowUpApiResearchJobIdFollowUpPostData, ThrowOnError>) => (options.client ?? client).post<StartFollowUpApiResearchJobIdFollowUpPostResponses, StartFollowUpApiResearchJobIdFollowUpPostErrors, ThrowOnError>({
     security: [{
