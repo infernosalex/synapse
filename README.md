@@ -29,8 +29,11 @@ flowchart LR
     AG --> PG[("PostgreSQL")]
 ```
 
-See [docs/AI_TOOLS.md](docs/AI_TOOLS.md) for how AI tools were used across each development phase
-(planning, coding, testing, CI/CD, documentation).
+## Documentation
+
+- [User stories](docs/USER_STORIES.md) — product requirements and acceptance criteria (US-###).
+- [Architecture](docs/ARCHITECTURE.md) — Mermaid diagrams (components, agent pipeline, data flow, ERD).
+- [AI tools report](docs/AI_TOOLS.md) — how AI tools were used across each development phase.
 
 ## Repository layout
 
