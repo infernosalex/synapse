@@ -16,6 +16,7 @@ from app.agents.critic import CriticAgent
 from app.agents.critic_graph import run_critic
 from app.models.events import ProgressEvent
 from app.models.research import CriticAnnotations, ScribeReport, Verdict
+from app.services.validation import CriticValidationError
 from tests.evals._harness import (
     RUBRIC_RATIONALE_QUALITY,
     EvalConfig,
@@ -52,11 +53,24 @@ async def test_critic_quality(
     eval_recorder: EvalRecorder,
 ) -> None:
     agent = CriticAgent(model)
-    annotations = await run_critic(
-        job_id=uuid4(),
-        report=case_obj.report,
-        agent=agent,
-        publish=_noop,
+    try:
+        annotations = await run_critic(
+            job_id=uuid4(),
+            report=case_obj.report,
+            agent=agent,
+            publish=_noop,
+        )
+    except CriticValidationError as exc:
+        # Candidate-quality failure (model never produced valid annotations),
+        # not infrastructure. Record as output_valid=0 instead of failing red.
+        eval_recorder.record("critic", model, case_obj.id, "output_valid", 0.0, str(exc))
+        eval_recorder.record_output(
+            "critic", model, case_obj.id, f"**CRITIQUE FAILED after retries:**\n\n{exc}"
+        )
+        return
+    eval_recorder.record("critic", model, case_obj.id, "output_valid", 1.0)
+    eval_recorder.record_output(
+        "critic", model, case_obj.id, _format_annotations(annotations, case_obj.labels)
     )
 
     # -- deterministic metrics ------------------------------------------------
@@ -91,6 +105,37 @@ async def test_critic_quality(
         rationale.score,
         rationale.reasoning,
     )
+
+
+# ---- transcript + metric helpers --------------------------------------------
+
+
+def _format_annotations(annotations: CriticAnnotations, labels: dict[str, str]) -> str:
+    """Render Critic verdicts next to ground-truth labels for manual review.
+
+    A `<-- MISMATCH` marker flags claims where the model's flagged/not-flagged
+    decision disagrees with the inserted-falsehood label, so mismatches are easy
+    to spot.
+    """
+    parts = [
+        f"**Overall confidence:** {annotations.overall_confidence:.2f}",
+        "",
+        "**Claim verdicts:**",
+    ]
+    for flag in annotations.claim_flags:
+        label = labels.get(flag.claim_id, "?")
+        flagged = flag.verdict in (Verdict.UNSUPPORTED, Verdict.CONTRADICTED)
+        expected_flag = label == "false"
+        marker = "  <-- MISMATCH" if flagged != expected_flag else ""
+        srcs = ", ".join(flag.supporting_source_ids) or "-"
+        parts.append(
+            f"- `{flag.claim_id}` verdict=**{flag.verdict.value}** "
+            f"(label={label}, sources={srcs}){marker}\n  {flag.rationale}"
+        )
+    parts.append("\n**Section confidence:**")
+    for sc in annotations.section_confidence:
+        parts.append(f"- `{sc.section_id}`: {sc.score:.2f} — {sc.reasoning}")
+    return "\n".join(parts)
 
 
 # ---- metric helpers ---------------------------------------------------------

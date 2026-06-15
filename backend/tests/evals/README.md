@@ -24,6 +24,11 @@ uv run pytest tests/evals/ -m agent_eval -k scribe -s
 After a run, `tests/evals/results/` contains:
 - `<UTC-timestamp>.json` — every raw metric row
 - `<UTC-timestamp>.md` — leaderboard table per agent
+- `<UTC-timestamp>_outputs.md` — full agent transcripts (sub-questions +
+  scored sources for Scout, the rendered report for Scribe, every verdict next
+  to its ground-truth label for Critic) so you can manually verify *how the
+  output actually looks*, not just the scores. Critic transcripts mark each
+  claim where the model's flag disagrees with the label (`<-- MISMATCH`).
 
 ## Environment variables
 

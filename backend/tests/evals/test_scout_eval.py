@@ -12,7 +12,7 @@ from uuid import uuid4
 import httpx
 import pytest
 
-from app.agents.scout import ScoutAgent
+from app.agents.scout import ScoutAgent, ScoutValidationError
 from app.agents.scout_graph import ScoutOutput, run_scout
 from app.models.events import ProgressEvent
 from app.models.research import Source
@@ -53,12 +53,24 @@ async def test_scout_quality(
 ) -> None:
     search_client = ExaSearchClient(http_client=http_client)
     agent = ScoutAgent(model, search_client=search_client)
-    result: ScoutOutput = await run_scout(
-        job_id=uuid4(),
-        topic=topic_obj.topic,
-        agent=agent,
-        publish=_noop,
-    )
+    try:
+        result: ScoutOutput = await run_scout(
+            job_id=uuid4(),
+            topic=topic_obj.topic,
+            agent=agent,
+            publish=_noop,
+        )
+    except ScoutValidationError as exc:
+        # Candidate-quality failure (decompose never produced a usable list),
+        # not infrastructure. Exa/network errors are NOT caught here — those are
+        # genuine infrastructure failures and should fail the run.
+        eval_recorder.record("scout", model, topic_obj.id, "output_valid", 0.0, str(exc))
+        eval_recorder.record_output(
+            "scout", model, topic_obj.id, f"**SCOUT FAILED after retries:**\n\n{exc}"
+        )
+        return
+    eval_recorder.record("scout", model, topic_obj.id, "output_valid", 1.0)
+    eval_recorder.record_output("scout", model, topic_obj.id, _format_scout(result))
 
     # -- deterministic metrics ------------------------------------------------
     recall, recall_detail = _curated_recall(result.sources, topic_obj.curated_sources)
@@ -101,7 +113,20 @@ async def test_scout_quality(
     )
 
 
-# ---- metric helpers ---------------------------------------------------------
+# ---- transcript + metric helpers --------------------------------------------
+
+
+def _format_scout(result: ScoutOutput) -> str:
+    """Render Scout output (sub-questions + scored sources) as Markdown for review."""
+    parts = ["**Sub-questions:**"]
+    parts.extend(f"- {q}" for q in result.sub_questions)
+    parts.append(f"\n**Sources ({len(result.sources)}):**")
+    for s in result.sources:
+        parts.append(
+            f"- **{s.title}** (cred {s.credibility:.2f}, rel {s.relevance:.2f}) — {s.url}\n"
+            f"  > {s.snippet[:200]}"
+        )
+    return "\n".join(parts)
 
 
 def _registrable_domain(url: str) -> str:

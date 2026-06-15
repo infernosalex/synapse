@@ -13,7 +13,8 @@ from uuid import uuid4
 import pytest
 
 from app.agents.scribe import ScribeAgent
-from app.models.research import ReportSection
+from app.models.research import ReportSection, ScribeReport
+from app.services.validation import ScribeValidationError
 from tests.evals._harness import (
     RUBRIC_COHERENCE,
     RUBRIC_FACTUAL_ACCURACY,
@@ -57,12 +58,24 @@ async def test_scribe_quality(
     eval_recorder: EvalRecorder,
 ) -> None:
     agent = ScribeAgent(model)
-    report = await agent.synthesize(
-        job_id=uuid4(),
-        topic=case_obj.topic,
-        sub_questions=case_obj.sub_questions,
-        sources=case_obj.sources,
-    )
+    try:
+        report = await agent.synthesize(
+            job_id=uuid4(),
+            topic=case_obj.topic,
+            sub_questions=case_obj.sub_questions,
+            sources=case_obj.sources,
+        )
+    except ScribeValidationError as exc:
+        # A model that cannot produce a schema-valid report after retries is a
+        # candidate-quality failure, not an infrastructure error. Record it as a
+        # 0 on output_valid (report-only) rather than failing the test red.
+        eval_recorder.record("scribe", model, case_obj.id, "output_valid", 0.0, str(exc))
+        eval_recorder.record_output(
+            "scribe", model, case_obj.id, f"**SYNTHESIS FAILED after retries:**\n\n{exc}"
+        )
+        return
+    eval_recorder.record("scribe", model, case_obj.id, "output_valid", 1.0)
+    eval_recorder.record_output("scribe", model, case_obj.id, _format_report(report))
 
     # -- deterministic metrics ------------------------------------------------
     cov, cov_detail = _citation_coverage(report.sections)
@@ -125,7 +138,26 @@ async def test_scribe_quality(
     )
 
 
-# ---- metric helpers ---------------------------------------------------------
+# ---- transcript + metric helpers --------------------------------------------
+
+
+def _format_report(report: ScribeReport) -> str:
+    """Render a Scribe report as Markdown for the manual-review transcript."""
+    parts = [f"**Title:** {report.title}", f"**Summary:** {report.summary_md}", ""]
+    for section in report.sections:
+        parts.append(f"##### {section.heading} (`{section.id}`)")
+        parts.append(section.body_md)
+        parts.append("")
+    if report.contradictions:
+        parts.append("**Contradictions:**")
+        for c in report.contradictions:
+            positions = " | ".join(
+                f"{p.statement} ({', '.join(p.source_ids)})" for p in c.positions
+            )
+            parts.append(f"- {c.topic}: {positions}")
+    if report.follow_ups:
+        parts.append("**Follow-ups:** " + "; ".join(report.follow_ups))
+    return "\n".join(parts)
 
 
 def _citation_coverage(sections: list[ReportSection]) -> tuple[float, str]:
