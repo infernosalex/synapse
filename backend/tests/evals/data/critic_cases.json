@@ -1,0 +1,209 @@
+[
+  {
+    "id": "battery_market",
+    "topic": "Grid-scale battery storage market, 2023",
+    "title": "Battery Storage Market Growth in 2023",
+    "summary_md": "The grid-scale battery storage market set records in 2023, driven by falling costs and supportive policy.",
+    "sources": [
+      {
+        "id": "s1",
+        "url": "https://www.iea.org/reports/batteries-and-secure-energy-transitions",
+        "title": "Batteries and Secure Energy Transitions (IEA, 2024)",
+        "credibility": 0.9,
+        "relevance": 0.95,
+        "snippet": "Global battery storage capacity additions reached 130 GW in 2023, a record annual addition. The cost of utility-scale lithium-ion batteries fell below $150 per kWh in 2023, down 90% from 2013 levels."
+      },
+      {
+        "id": "s2",
+        "url": "https://www.woodmac.com/news/editorial/global-energy-storage-outlook/",
+        "title": "Global Energy Storage Outlook (Wood Mackenzie, 2024)",
+        "credibility": 0.8,
+        "relevance": 0.9,
+        "snippet": "Renewable energy policy mandates were the primary driver of new battery storage procurement in 2023. China accounted for over 60% of global deployments."
+      }
+    ],
+    "sections": [
+      {
+        "id": "sec1",
+        "heading": "Deployment Records",
+        "body_md": "The battery storage sector broke records in 2023. <span data-claim=\"sec1.c1\">Global capacity additions reached 130 GW in 2023, the highest ever recorded.[^s1]</span> Cost reductions continued apace, with <span data-claim=\"sec1.c2\">utility-scale lithium-ion battery prices falling below $150 per kWh in 2023, a 90% decline from 2013 levels.[^s1]</span>"
+      },
+      {
+        "id": "sec2",
+        "heading": "Market Drivers",
+        "body_md": "Policy and economics both accelerated deployment. <span data-claim=\"sec2.c1\">Renewable energy policy mandates were the primary driver of new battery storage procurement in 2023.[^s2]</span> On a regional basis, <span data-claim=\"sec2.c2\">the United States led global battery storage deployments in 2023, accounting for over 60% of new capacity.[^s2]</span>"
+      }
+    ],
+    "labels": {
+      "sec1.c1": "supported",
+      "sec1.c2": "supported",
+      "sec2.c1": "supported",
+      "sec2.c2": "false"
+    },
+    "contradictions": [],
+    "follow_ups": []
+  },
+  {
+    "id": "llm_scaling_laws",
+    "topic": "LLM scaling laws and compute-optimal training, 2022",
+    "title": "Chinchilla and the Compute-Optimal Frontier",
+    "summary_md": "The Chinchilla paper overturned prior assumptions about large language model training, showing that data quantity matters as much as model size.",
+    "sources": [
+      {
+        "id": "s1",
+        "url": "https://arxiv.org/abs/2203.15556",
+        "title": "Training Compute-Optimal Large Language Models (Hoffmann et al., 2022)",
+        "credibility": 0.95,
+        "relevance": 0.95,
+        "snippet": "For compute-optimal training, the number of training tokens should scale in proportion to model parameters. A 70B parameter model should be trained on roughly 1.4 trillion tokens. The Chinchilla 70B model outperforms Gopher 280B using the same training compute budget."
+      },
+      {
+        "id": "s2",
+        "url": "https://arxiv.org/abs/2001.08361",
+        "title": "Scaling Laws for Neural Language Models (Kaplan et al., 2020)",
+        "credibility": 0.95,
+        "relevance": 0.9,
+        "snippet": "Model performance scales as a power law with model size, dataset size, and compute. Larger models are more sample-efficient than smaller models trained for longer on the same compute budget."
+      }
+    ],
+    "sections": [
+      {
+        "id": "sec1",
+        "heading": "Chinchilla Scaling Laws",
+        "body_md": "Hoffmann et al. (2022) established revised scaling principles. <span data-claim=\"sec1.c1\">They found that compute-optimal training requires scaling training tokens proportionally to model parameters.[^s1]</span> Concretely, <span data-claim=\"sec1.c2\">a 70B parameter model requires roughly 1.4 trillion training tokens for compute-optimal performance.[^s1]</span> The result was striking: <span data-claim=\"sec1.c3\">Chinchilla 70B outperforms Gopher 280B despite using the same training compute.[^s1]</span>"
+      },
+      {
+        "id": "sec2",
+        "heading": "Prior Scaling Research",
+        "body_md": "Kaplan et al. (2020) laid the groundwork with earlier scaling laws. <span data-claim=\"sec2.c1\">They showed that model performance scales as a power law with model size, dataset size, and compute.[^s2]</span> Their key finding was that <span data-claim=\"sec2.c2\">smaller models trained on more data are always more sample-efficient than larger models trained on less data for the same compute budget.[^s2]</span>"
+      }
+    ],
+    "labels": {
+      "sec1.c1": "supported",
+      "sec1.c2": "supported",
+      "sec1.c3": "supported",
+      "sec2.c1": "supported",
+      "sec2.c2": "false"
+    },
+    "contradictions": [],
+    "follow_ups": []
+  },
+  {
+    "id": "crispr_approval",
+    "topic": "FDA approval of CRISPR gene therapy Casgevy for sickle cell disease, December 2023",
+    "title": "Casgevy: First CRISPR Therapy Approved for Sickle Cell Disease",
+    "summary_md": "In December 2023 the FDA approved Casgevy, the first CRISPR-based gene-editing therapy, for sickle cell disease.",
+    "sources": [
+      {
+        "id": "s1",
+        "url": "https://www.fda.gov/news-events/press-announcements/fda-approves-first-gene-therapies-treat-patients-sickle-cell-disease",
+        "title": "FDA Approves First Gene Therapies to Treat Patients with Sickle Cell Disease (FDA, 2023)",
+        "credibility": 0.97,
+        "relevance": 0.95,
+        "snippet": "On December 8, 2023, the FDA approved two milestone treatments, Casgevy and Lyfgenia, the first cell-based gene therapies for sickle cell disease in patients 12 years of age and older. Casgevy is the first FDA-approved treatment to use CRISPR/Cas9 genome editing. Sickle cell disease affects approximately 100,000 people in the United States."
+      },
+      {
+        "id": "s2",
+        "url": "https://ir.crisprtx.com/news-releases/news-release-details/vertex-and-crispr-therapeutics-announce-us-fda-approval",
+        "title": "Vertex and CRISPR Therapeutics Announce US FDA Approval of CASGEVY (CRISPR Therapeutics, 2023)",
+        "credibility": 0.65,
+        "relevance": 0.9,
+        "snippet": "Casgevy (exagamglogene autotemcel) was co-developed by Vertex Pharmaceuticals and CRISPR Therapeutics. Approximately 16,000 patients 12 years of age and older with severe sickle cell disease may be eligible for this one-time treatment."
+      },
+      {
+        "id": "s3",
+        "url": "https://www.cnbc.com/2023/12/08/casgevy-first-crispr-gene-editing-treatment-approved-in-us.html",
+        "title": "Casgevy: First CRISPR gene-editing treatment approved in U.S. (CNBC, 2023)",
+        "credibility": 0.75,
+        "relevance": 0.85,
+        "snippet": "Casgevy will cost $2.2 million per patient. CRISPR, the gene-editing technology, won its inventors the Nobel Prize in Chemistry in 2020."
+      }
+    ],
+    "sections": [
+      {
+        "id": "sec1",
+        "heading": "The Approval",
+        "body_md": "On December 8, 2023, <span data-claim=\"sec1.c1\">the FDA approved two cell-based gene therapies, Casgevy and Lyfgenia, for sickle cell disease.[^s1]</span> Notably, <span data-claim=\"sec1.c2\">Casgevy is the first FDA-approved treatment to use CRISPR/Cas9 genome editing.[^s1]</span> <span data-claim=\"sec1.c3\">Both therapies were approved for patients 18 years of age and older.[^s1]</span>"
+      },
+      {
+        "id": "sec2",
+        "heading": "Eligibility and Developers",
+        "body_md": "<span data-claim=\"sec2.c1\">Casgevy was co-developed by Vertex Pharmaceuticals and CRISPR Therapeutics.[^s2]</span> <span data-claim=\"sec2.c2\">Approximately 16,000 patients aged 12 and older with severe sickle cell disease may be eligible for the one-time treatment.[^s2]</span> The disease is not rare: <span data-claim=\"sec2.c3\">sickle cell disease affects roughly 100,000 people in the United States.[^s1]</span>"
+      },
+      {
+        "id": "sec3",
+        "heading": "Cost and Recognition",
+        "body_md": "<span data-claim=\"sec3.c1\">Casgevy is priced at $2.2 million per patient.[^s3]</span> The underlying science is decorated: <span data-claim=\"sec3.c2\">the CRISPR gene-editing tool earned its inventors the 2020 Nobel Prize in Physiology or Medicine.[^s3]</span> <span data-claim=\"sec3.c3\">Clinical trials showed that Casgevy completely eliminates the need for blood transfusions in every treated patient.[^s2]</span>"
+      }
+    ],
+    "labels": {
+      "sec1.c1": "supported",
+      "sec1.c2": "supported",
+      "sec1.c3": "false",
+      "sec2.c1": "supported",
+      "sec2.c2": "supported",
+      "sec2.c3": "supported",
+      "sec3.c1": "supported",
+      "sec3.c2": "false",
+      "sec3.c3": "false"
+    },
+    "contradictions": [],
+    "follow_ups": []
+  },
+  {
+    "id": "select_trial",
+    "topic": "Semaglutide cardiovascular outcomes in the SELECT trial",
+    "title": "SELECT: Semaglutide and Cardiovascular Risk in Obesity",
+    "summary_md": "The SELECT trial tested whether semaglutide reduces cardiovascular events in people with obesity but without diabetes.",
+    "sources": [
+      {
+        "id": "s1",
+        "url": "https://www.nejm.org/doi/full/10.1056/NEJMoa2307563",
+        "title": "Semaglutide and Cardiovascular Outcomes in Obesity without Diabetes (NEJM)",
+        "credibility": 0.95,
+        "relevance": 0.95,
+        "snippet": "The SELECT trial enrolled patients 45 years of age or older who had preexisting cardiovascular disease and a body-mass index of 27 or greater but no history of diabetes. Patients were randomly assigned in a 1:1 ratio to once-weekly subcutaneous semaglutide 2.4 mg or placebo."
+      },
+      {
+        "id": "s2",
+        "url": "https://clinicaltrials.gov/study/NCT03574597",
+        "title": "SELECT trial registry entry NCT03574597 (ClinicalTrials.gov)",
+        "credibility": 0.9,
+        "relevance": 0.9,
+        "snippet": "Trial NCT03574597 was a Phase 3 interventional study with 17,604 participants, sponsored by Novo Nordisk. It started on October 24, 2018 and was completed on June 29, 2023."
+      },
+      {
+        "id": "s3",
+        "url": "https://www.globenewswire.com/news-release/2023/11/11/2778596/0/en/Novo-Nordisk-semaglutide-cardiovascular.html",
+        "title": "Novo Nordisk: Semaglutide 2.4 mg cardiovascular outcomes data (GlobeNewswire, 2023)",
+        "credibility": 0.55,
+        "relevance": 0.85,
+        "snippet": "Semaglutide 2.4 mg delivered a statistically significant 20% risk reduction in major adverse cardiovascular events (MACE). Risk reductions in MACE were evident soon after initiation."
+      }
+    ],
+    "sections": [
+      {
+        "id": "sec1",
+        "heading": "Trial Design",
+        "body_md": "<span data-claim=\"sec1.c1\">The SELECT trial enrolled patients aged 45 and older with preexisting cardiovascular disease and a BMI of at least 27 but no diabetes.[^s1]</span> <span data-claim=\"sec1.c2\">Participants were randomized 1:1 to once-weekly subcutaneous semaglutide 2.4 mg or placebo.[^s1]</span> <span data-claim=\"sec1.c3\">The trial enrolled 17,604 participants and was sponsored by Novo Nordisk.[^s2]</span> <span data-claim=\"sec1.c4\">Enrollment required all participants to have type 2 diabetes at baseline.[^s1]</span>"
+      },
+      {
+        "id": "sec2",
+        "heading": "Cardiovascular Results",
+        "body_md": "<span data-claim=\"sec2.c1\">Semaglutide 2.4 mg produced a statistically significant 20% reduction in major adverse cardiovascular events.[^s3]</span> <span data-claim=\"sec2.c2\">The cardiovascular benefit emerged soon after treatment initiation.[^s3]</span> <span data-claim=\"sec2.c3\">Semaglutide also reduced all-cause mortality by 35% over the study period.[^s3]</span> <span data-claim=\"sec2.c4\">The trial ran for over a decade, from 2008 to 2023.[^s2]</span>"
+      }
+    ],
+    "labels": {
+      "sec1.c1": "supported",
+      "sec1.c2": "supported",
+      "sec1.c3": "supported",
+      "sec1.c4": "false",
+      "sec2.c1": "supported",
+      "sec2.c2": "supported",
+      "sec2.c3": "false",
+      "sec2.c4": "false"
+    },
+    "contradictions": [],
+    "follow_ups": []
+  }
+]
