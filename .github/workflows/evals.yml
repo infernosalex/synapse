@@ -32,6 +32,7 @@ permissions:
 jobs:
   agent-evals:
     runs-on: ubuntu-latest
+    environment: evals
     defaults:
       run:
         working-directory: backend
