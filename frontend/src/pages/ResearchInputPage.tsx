@@ -9,7 +9,6 @@ import { Button } from '../components/ui/Button'
 import { Select, type SelectOption } from '../components/ui/Select'
 import { AGENTS, AGENT_ORDER, type Agent } from '../components/ui/Agent'
 import { AgentDot } from '../components/ui/AgentDot'
-import { ConfidenceBar } from '../components/ConfidenceBar'
 import { useMe } from '../hooks/useMe'
 import { useAgentModels } from '../hooks/useAgentModels'
 import { usePreviewResearch } from '../hooks/usePreviewResearch'
@@ -17,8 +16,27 @@ import { useResearchHistory } from '../hooks/useResearchHistory'
 import { useStartResearch } from '../hooks/useStartResearch'
 import { ApiError } from '../services/api'
 import { ALLOWED_MODELS } from '../constants/models'
+import type { JobStatus, JobSummary } from '../types/api'
 
 const allowedModelIds: string[] = ALLOWED_MODELS.map((m) => m.id)
+
+// How many briefs the "recent" rail shows before deferring to the full Library.
+const RECENT_LIMIT = 6
+
+// Each status maps to the agent whose colour represents that stage, plus whether
+// the job is still running (terminal states get a static dot, live ones pulse).
+const RECENT_STATUS: Record<JobStatus, { agent: Agent; label: string; active: boolean }> = {
+  completed: { agent: 'scout', label: 'completed', active: false },
+  failed: { agent: 'critic', label: 'failed', active: false },
+  pending: { agent: 'scribe', label: 'pending', active: true },
+  scouting: { agent: 'scribe', label: 'scouting', active: true },
+  synthesizing: { agent: 'scribe', label: 'synthesizing', active: true },
+  critiquing: { agent: 'scribe', label: 'critiquing', active: true },
+}
+
+function formatRecentDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+}
 
 const formSchema = z.object({
   topic: z.string().min(10, 'Topic must be at least 10 characters').max(2000),
@@ -81,6 +99,7 @@ export default function ResearchInputPage() {
   const history = useResearchHistory()
   // The history hook is paginated (useInfiniteQuery); the "recent" sidebar only needs a flat list.
   const historyItems = history.data?.pages.flatMap((p) => p.items) ?? []
+  const recentItems = historyItems.slice(0, RECENT_LIMIT)
   const startResearch = useStartResearch()
   const previewResearch = usePreviewResearch()
 
@@ -452,51 +471,10 @@ export default function ResearchInputPage() {
             </Link>
           </div>
 
-          {historyItems.length > 0 ? (
+          {recentItems.length > 0 ? (
             <div className="flex flex-col">
-              {historyItems.map((job, i) => (
-                <Link
-                  key={job.id}
-                  to="/research/$jobId"
-                  params={{ jobId: job.id }}
-                  className="block transition-colors hover:bg-bg-3"
-                  style={{
-                    padding: '0.875rem 0',
-                    borderBottom:
-                      i < historyItems.length - 1 ? '1px solid var(--line-soft)' : 'none',
-                    textDecoration: 'none',
-                    color: 'inherit',
-                  }}
-                >
-                  <div
-                    className="serif"
-                    style={{
-                      fontSize: '0.875rem',
-                      lineHeight: 1.3,
-                      marginBottom: '0.5rem',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {job.topic}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <ConfidenceBar value={job.progress ?? 0} />
-                    <span
-                      className="font-mono"
-                      style={{ fontSize: '0.625rem', color: 'var(--muted)' }}
-                    >
-                      {job.created_at
-                        ? new Date(job.created_at).toLocaleDateString('en-GB', {
-                            day: '2-digit',
-                            month: 'short',
-                          })
-                        : ''}
-                    </span>
-                  </div>
-                </Link>
+              {recentItems.map((job, i) => (
+                <RecentRow key={job.id} job={job} divider={i < recentItems.length - 1} />
               ))}
             </div>
           ) : (
@@ -520,5 +498,69 @@ export default function ResearchInputPage() {
         </aside>
       </div>
     </div>
+  )
+}
+
+// A single brief in the "recent" rail.
+function RecentRow({ job, divider }: { job: JobSummary; divider: boolean }) {
+  const status = RECENT_STATUS[job.status]
+  const done = job.status === 'completed'
+
+  return (
+    <Link
+      to={done ? '/research/$jobId/report' : '/research/$jobId'}
+      params={{ jobId: job.id }}
+      className="group block transition-colors hover:bg-bg-3"
+      style={{
+        padding: '0.875rem 0',
+        borderBottom: divider ? '1px solid var(--line-soft)' : 'none',
+        textDecoration: 'none',
+        color: 'inherit',
+        opacity: job.status === 'failed' ? 0.65 : 1,
+      }}
+    >
+      <div
+        className="serif"
+        style={{
+          fontSize: '0.875rem',
+          lineHeight: 1.35,
+          fontWeight: 300,
+          marginBottom: '0.5rem',
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+        }}
+      >
+        {job.topic}
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <span
+          className="flex items-center gap-1.5 min-w-0"
+          style={{ color: `var(--${status.agent})` }}
+        >
+          <span
+            className={status.active ? 'pulse-dot' : ''}
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: 'currentColor',
+              flexShrink: 0,
+            }}
+            aria-hidden
+          />
+          <span className="label" style={{ fontSize: '0.625rem', color: 'inherit' }}>
+            {status.label}
+          </span>
+        </span>
+        <span
+          className="font-mono shrink-0"
+          style={{ fontSize: '0.625rem', color: 'var(--muted)' }}
+        >
+          {formatRecentDate(job.created_at)}
+        </span>
+      </div>
+    </Link>
   )
 }

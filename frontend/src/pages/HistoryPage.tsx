@@ -9,13 +9,13 @@ import { useDeleteResearch } from '../hooks/useDeleteResearch'
 import { useResearchHistory } from '../hooks/useResearchHistory'
 import type { JobStatus, JobSummary } from '../types/api'
 
-const STATUS_META: Record<JobStatus, { agent: Agent; label: string }> = {
-  completed: { agent: 'scout', label: 'completed' },
-  pending: { agent: 'scribe', label: 'pending' },
-  scouting: { agent: 'scribe', label: 'scouting' },
-  synthesizing: { agent: 'scribe', label: 'synthesizing' },
-  critiquing: { agent: 'scribe', label: 'critiquing' },
-  failed: { agent: 'critic', label: 'failed' },
+const STATUS_META: Record<JobStatus, { agent: Agent; label: string; active: boolean }> = {
+  completed: { agent: 'scout', label: 'completed', active: false },
+  failed: { agent: 'critic', label: 'failed', active: false },
+  pending: { agent: 'scribe', label: 'pending', active: true },
+  scouting: { agent: 'scribe', label: 'scouting', active: true },
+  synthesizing: { agent: 'scribe', label: 'synthesizing', active: true },
+  critiquing: { agent: 'scribe', label: 'critiquing', active: true },
 }
 
 function formatDate(iso: string): string {
@@ -40,6 +40,13 @@ function Shell({ children }: { children: React.ReactNode }) {
           labelStyle={{ fontSize: 17, fontWeight: 500 }}
         />
         <span className="w-px h-4 shrink-0" style={{ background: 'var(--line)' }} aria-hidden />
+        <Link
+          to="/research/new"
+          className="label"
+          style={{ textDecoration: 'none', color: 'var(--muted)' }}
+        >
+          New brief
+        </Link>
         <span className="label">Library</span>
       </AppNavbar>
       {children}
@@ -103,11 +110,11 @@ export default function HistoryPage() {
     return (
       <Shell>
         <Centered>
-          <p className="micro">Library</p>
+          <p className="micro">§ Library</p>
           <p
             className="serif"
             style={{
-              fontSize: 28,
+              fontSize: 'clamp(1.75rem, 4vw, 2.5rem)',
               fontWeight: 300,
               letterSpacing: '-0.02em',
               color: 'var(--fg-2)',
@@ -130,19 +137,61 @@ export default function HistoryPage() {
   return (
     <Shell>
       <div style={{ flex: 1 }}>
-        <div className="mx-auto w-full" style={{ maxWidth: 860, padding: '40px 24px 64px' }}>
-          <div className="micro" style={{ marginBottom: 24 }}>
-            Library · {total} {total === 1 ? 'brief' : 'briefs'}
-          </div>
+        <div className="mx-auto w-full" style={{ maxWidth: 900, padding: '0 24px 72px' }}>
+          {/* Editorial page header, mirroring the landing's section grid: a §
+           * micro-label over a large Fraunces headline, with a running tally
+           * and a quick path back to composing on the right. */}
+          <header
+            className="grid gap-6 sm:grid-cols-[1fr_auto] sm:items-end"
+            style={{ padding: '48px 0 28px' }}
+          >
+            <div>
+              <div className="micro" style={{ marginBottom: 14 }}>
+                § Library
+              </div>
+              <h1
+                className="serif font-normal"
+                style={{
+                  fontSize: 'clamp(2.5rem, 6vw, 4rem)',
+                  letterSpacing: '-0.035em',
+                  lineHeight: 0.95,
+                  margin: 0,
+                }}
+              >
+                Everything you've
+                <br />
+                <em className="font-light">asked.</em>
+              </h1>
+            </div>
+            <div className="flex items-baseline gap-4 sm:flex-col sm:items-end sm:gap-2">
+              <span className="micro">
+                {total} {total === 1 ? 'brief' : 'briefs'}
+              </span>
+              <Link
+                to="/research/new"
+                className="label"
+                style={{ color: 'var(--fg)', textDecoration: 'underline', textUnderlineOffset: 4 }}
+              >
+                New brief →
+              </Link>
+            </div>
+          </header>
 
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {items.map((job) => (
-              <HistoryRow key={job.id} job={job} />
+          <ul
+            style={{
+              listStyle: 'none',
+              padding: 0,
+              margin: 0,
+              borderTop: '1px solid var(--line)',
+            }}
+          >
+            {items.map((job, i) => (
+              <HistoryRow key={job.id} job={job} index={i + 1} />
             ))}
           </ul>
 
           {hasNextPage && (
-            <div style={{ marginTop: 28, display: 'flex', justifyContent: 'center' }}>
+            <div style={{ marginTop: 32, display: 'flex', justifyContent: 'center' }}>
               <Button
                 variant="ghost"
                 size="sm"
@@ -159,7 +208,7 @@ export default function HistoryPage() {
   )
 }
 
-function HistoryRow({ job }: { job: JobSummary }) {
+function HistoryRow({ job, index }: { job: JobSummary; index: number }) {
   const done = job.status === 'completed'
   const failed = job.status === 'failed'
   const status = STATUS_META[job.status]
@@ -177,56 +226,93 @@ function HistoryRow({ job }: { job: JobSummary }) {
 
   return (
     <li
-      className="transition-colors hover:bg-bg-2"
+      className="group relative transition-colors hover:bg-bg-2"
       style={{
         display: 'flex',
         alignItems: 'baseline',
         gap: 16,
-        padding: '18px 12px',
+        padding: '20px 12px',
         margin: '0 -12px',
-        borderTop: '1px solid var(--line-soft)',
+        borderBottom: '1px solid var(--line-soft)',
         opacity: failed ? 0.6 : 1,
       }}
     >
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <Link
-          to={done ? '/research/$jobId/report' : '/research/$jobId'}
-          params={{ jobId: job.id }}
+      {/* Stretched link: a full-bleed overlay makes the whole row a single click
+       * target to the report (or live progress). The nested follow-up link and
+       * the delete controls sit above it via z-index so they stay independently
+       * clickable — the standard "card link" pattern that keeps one primary
+       * destination without nesting interactive elements inside an anchor. */}
+      <Link
+        to={done ? '/research/$jobId/report' : '/research/$jobId'}
+        params={{ jobId: job.id }}
+        aria-label={job.topic}
+        className="absolute inset-0"
+        style={{ zIndex: 0 }}
+      />
+
+      {/* Running index ties the list to the landing's numbered rails. */}
+      <span
+        className="font-mono shrink-0"
+        style={{ fontSize: '0.6875rem', color: 'var(--muted)', paddingTop: 4, width: 22 }}
+        aria-hidden
+      >
+        {String(index).padStart(2, '0')}
+      </span>
+
+      <div className="pointer-events-none" style={{ flex: 1, minWidth: 0 }}>
+        <div
           className="serif"
           style={{
-            display: 'block',
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: 300,
-            letterSpacing: '-0.01em',
+            letterSpacing: '-0.015em',
+            lineHeight: 1.2,
             color: 'inherit',
-            textDecoration: 'none',
-            marginBottom: 6,
+            marginBottom: 8,
           }}
         >
           {job.topic}
-        </Link>
+        </div>
 
         {job.parent_job_id && (
           <Link
             to="/research/$jobId/report"
             params={{ jobId: job.parent_job_id }}
-            className="micro"
-            style={{ color: 'var(--scribe)', textDecoration: 'none', display: 'inline-block' }}
+            className="micro pointer-events-auto relative"
+            style={{
+              color: 'var(--scribe)',
+              textDecoration: 'none',
+              display: 'inline-block',
+              zIndex: 1,
+            }}
             title={job.parent_topic ?? undefined}
           >
             ↳ Follow-up of “{truncate(job.parent_topic ?? 'a brief', 56)}”
           </Link>
         )}
 
-        <div
-          className="micro"
-          style={{ color: 'var(--muted)', marginTop: job.parent_job_id ? 4 : 0 }}
-        >
-          {meta.join(' · ')}
+        <div className="flex items-center gap-2.5" style={{ marginTop: job.parent_job_id ? 6 : 0 }}>
+          <span
+            className={status.active ? 'pulse-dot' : ''}
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: `var(--${status.agent})`,
+              flexShrink: 0,
+            }}
+            aria-hidden
+          />
+          <span className="micro" style={{ color: 'var(--muted)' }}>
+            {meta.join(' · ')}
+          </span>
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+      <div
+        className="relative"
+        style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, zIndex: 1 }}
+      >
         {job.parent_job_id && <Chip>↳ follow-up</Chip>}
         <Chip agent={status.agent} dot>
           {status.label}
@@ -259,6 +345,7 @@ function HistoryRow({ job }: { job: JobSummary }) {
             variant="ghost"
             size="sm"
             aria-label={`Delete ${job.topic}`}
+            className="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
             onClick={() => setConfirming(true)}
           >
             Delete
