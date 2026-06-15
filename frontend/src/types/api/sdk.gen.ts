@@ -149,7 +149,7 @@ export const listResearchApiResearchGet = <ThrowOnError extends boolean = false>
  *
  * Persist a new research job and hand it off to the worker.
  *
- * The row is committed before the task is enqueued so the worker (which loads the job by id) is guaranteed to see it. If the enqueue fails the row is left in `pending`; a later sweep can either retry it or mark it as failed.
+ * The row is committed before the task is enqueued so the worker (which loads the job by id) is guaranteed to see it. If the enqueue fails the row is marked `failed` rather than left dangling in `pending`, so the client gets an error and the job never appears stuck.
  */
 export const startResearchApiResearchPost = <ThrowOnError extends boolean = false>(options: Options<StartResearchApiResearchPostData, ThrowOnError>) => (options.client ?? client).post<StartResearchApiResearchPostResponses, StartResearchApiResearchPostErrors, ThrowOnError>({
     security: [{

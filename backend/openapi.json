@@ -473,7 +473,7 @@
           "research"
         ],
         "summary": "Start Research",
-        "description": "Persist a new research job and hand it off to the worker.\n\nThe row is committed before the task is enqueued so the worker (which loads the job by id) is guaranteed to see it. If the enqueue fails the row is left in `pending`; a later sweep can either retry it or mark it as failed.",
+        "description": "Persist a new research job and hand it off to the worker.\n\nThe row is committed before the task is enqueued so the worker (which loads the job by id) is guaranteed to see it. If the enqueue fails the row is marked `failed` rather than left dangling in `pending`, so the client gets an error and the job never appears stuck.",
         "operationId": "start_research_api_research_post",
         "security": [
           {

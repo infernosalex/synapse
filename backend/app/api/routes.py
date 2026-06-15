@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 import httpx
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,6 +30,8 @@ from app.services.export import build_markdown, render_pdf
 from app.services.persistence import JobNotFoundError, JobRepository, ReportNotFoundError
 from app.services.search import ExaSearchClient
 from app.tasks.research import run_research_pipeline
+
+_log = structlog.get_logger(__name__)
 
 router = APIRouter(dependencies=[Depends(current_active_user)])
 
@@ -54,7 +57,7 @@ async def start_research(
 ) -> ResearchJob:
     """Persist a new research job and hand it off to the worker.
 
-    The row is committed before the task is enqueued so the worker (which loads the job by id) is guaranteed to see it. If the enqueue fails the row is left in `pending`; a later sweep can either retry it or mark it as failed.
+    The row is committed before the task is enqueued so the worker (which loads the job by id) is guaranteed to see it. If the enqueue fails the row is marked `failed` rather than left dangling in `pending`, so the client gets an error and the job never appears stuck.
     """
     now = datetime.now(UTC)
     row = orm.ResearchJob(
@@ -73,7 +76,19 @@ async def start_research(
     await session.commit()
     await session.refresh(row)
 
-    await run_research_pipeline.kiq(row.id)
+    try:
+        await run_research_pipeline.kiq(row.id)
+    except Exception:
+        # The row is already committed; if the broker is unreachable the worker
+        # will never pick it up, so mark it failed instead of leaving it stuck
+        # in `pending` forever.
+        _log.exception("research_job_enqueue_failed", job_id=str(row.id))
+        await JobRepository(session).mark_failed(row.id, "Failed to enqueue research task.")
+        await session.commit()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Failed to enqueue research task. Please retry.",
+        ) from None
 
     return ResearchJob(
         id=row.id,
