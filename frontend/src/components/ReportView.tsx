@@ -7,11 +7,12 @@ import { MarginPanel } from './MarginPanel'
 import { ReportSection } from './ReportSection'
 import { SourceRow } from './SourceRow'
 import { Button } from './ui/Button'
-import type { VerifiedReport } from '../types/api'
+import type { FollowUpLink, JobLineage, VerifiedReport } from '../types/api'
 
 interface ReportViewProps {
   data: VerifiedReport
   jobId: string
+  lineage?: JobLineage
   /**
    * When true the report is the static showcase served from `/sample-report`.
    * Export and follow-up actions are hidden because they would target a job
@@ -29,7 +30,38 @@ function estimateReadingTime(sections: { body_md: string }[]): number {
   return Math.max(1, Math.round(words / 200))
 }
 
-export function ReportView({ data, jobId, sample = false }: ReportViewProps) {
+function truncate(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text
+}
+
+function FollowUpRow({ child, index }: { child: FollowUpLink; index: number }) {
+  // A completed child has a report to read; otherwise link to its live progress view.
+  const done = child.status === 'completed'
+  return (
+    <li>
+      <Link
+        to={done ? '/research/$jobId/report' : '/research/$jobId'}
+        params={{ jobId: child.job_id }}
+        className="report-followup-row"
+      >
+        <span className="mono report-followup-index">{String(index).padStart(2, '0')}</span>
+        <span className="serif report-followup-question">{child.question}</span>
+        <span className="report-followup-status">
+          <span
+            aria-hidden
+            className="report-followup-dot"
+            style={{ background: done ? 'var(--scout)' : 'var(--muted)' }}
+          />
+          <span className="micro" style={{ color: done ? 'var(--scout)' : 'var(--muted)' }}>
+            {done ? 'Read brief' : child.status}
+          </span>
+        </span>
+      </Link>
+    </li>
+  )
+}
+
+export function ReportView({ data, jobId, lineage, sample = false }: ReportViewProps) {
   const [highlightedSourceId, setHighlightedSourceId] = useState<string | null>(null)
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -74,6 +106,17 @@ export function ReportView({ data, jobId, sample = false }: ReportViewProps) {
             {formatDate(deliveredAt)}
           </span>
         </div>
+        {!sample && lineage?.parent && (
+          <Link
+            to="/research/$jobId/report"
+            params={{ jobId: lineage.parent.job_id }}
+            className="micro"
+            style={{ color: 'var(--scribe)', textDecoration: 'none' }}
+            title={lineage.parent.topic}
+          >
+            ↳ Follow-up of “{truncate(lineage.parent.topic, 48)}”
+          </Link>
+        )}
         <div className="report-nav-actions">
           {sample ? (
             <Link to="/register">
@@ -287,6 +330,31 @@ export function ReportView({ data, jobId, sample = false }: ReportViewProps) {
           <aside className="report-sources-aside" style={{ background: 'var(--bg-2)' }} />
         </div>
       </div>
+
+      {!sample && lineage && lineage.children.length > 0 && (
+        <section
+          aria-label="Follow-up briefs"
+          style={{
+            background: 'var(--bg-2)',
+            borderTop: '1px solid var(--fg)',
+          }}
+        >
+          <div className="report-followups-inner">
+            <div
+              className="micro"
+              style={{ marginBottom: 20, display: 'flex', alignItems: 'baseline', gap: 8 }}
+            >
+              <span>Continue the thread</span>
+              <span style={{ color: 'var(--muted)' }}>· {lineage.children.length}</span>
+            </div>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {lineage.children.map((child, i) => (
+                <FollowUpRow key={child.job_id} child={child} index={i + 1} />
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
     </div>
   )
 }

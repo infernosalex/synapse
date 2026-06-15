@@ -1,12 +1,14 @@
 import { Link, useParams } from '@tanstack/react-router'
 
 import { ReportView } from '../components/ReportView'
+import { useJobLineage } from '../hooks/useJobLineage'
 import { useReport } from '../hooks/useReport'
 import { ApiError } from '../services/api'
 
 export default function ReportPage() {
   const { jobId } = useParams({ from: '/research/$jobId/report' })
   const { data, isLoading, error } = useReport(jobId)
+  const { data: lineage } = useJobLineage(jobId)
 
   if (isLoading) {
     return (
@@ -45,5 +47,5 @@ export default function ReportPage() {
     )
   }
 
-  return <ReportView data={data} jobId={jobId} />
+  return <ReportView data={data} jobId={jobId} lineage={lineage} />
 }
