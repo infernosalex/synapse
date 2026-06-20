@@ -201,6 +201,91 @@ describe('ResearchPreviewPage', () => {
     expect(mockStartResearch).not.toHaveBeenCalled()
   })
 
+  it('"Edit" lets the user rewrite a sub-question and launches with the edited text', async () => {
+    mockStartResearch.mockResolvedValue({ id: 'job-abc' })
+    renderPage()
+
+    await userEvent.click(screen.getAllByRole('button', { name: /^edit$/i })[0])
+
+    const editor = screen.getByLabelText(/edit sub-question 1/i)
+    await userEvent.clear(editor)
+    await userEvent.type(editor, 'Rewritten first sub-question')
+    await userEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Rewritten first sub-question')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: /approve & launch/i }))
+
+    await waitFor(() => {
+      expect(mockStartResearch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sub_questions: expect.arrayContaining(['Rewritten first sub-question']),
+        }),
+      )
+    })
+  })
+
+  it('"+ Add question" appends a new sub-question included in the launch payload', async () => {
+    mockStartResearch.mockResolvedValue({ id: 'job-abc' })
+    renderPage()
+
+    await userEvent.click(screen.getByRole('button', { name: /add question/i }))
+
+    const editor = screen.getByLabelText(/edit sub-question 4/i)
+    await userEvent.type(editor, 'A brand new angle to explore')
+    await userEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await userEvent.click(screen.getByRole('button', { name: /approve & launch/i }))
+
+    await waitFor(() => {
+      expect(mockStartResearch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sub_questions: expect.arrayContaining(['A brand new angle to explore']),
+        }),
+      )
+    })
+  })
+
+  it('cancelling an empty added question removes the placeholder row', async () => {
+    renderPage()
+
+    expect(screen.getAllByRole('button', { name: /^drop$/i })).toHaveLength(3)
+
+    await userEvent.click(screen.getByRole('button', { name: /add question/i }))
+    expect(screen.getByLabelText(/edit sub-question 4/i)).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /^cancel$/i }))
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText(/edit sub-question 4/i)).not.toBeInTheDocument()
+      expect(screen.getAllByRole('button', { name: /^drop$/i })).toHaveLength(3)
+    })
+  })
+
+  it('does not redirect to /research/new when launch flips location to the job route', async () => {
+    // Reproduces the launch-hijack bug: once the parent navigates to the job
+    // route, `useLocation` returns empty state. A re-parsing guard would treat
+    // that as invalid and redirect to /research/new instead of the new job.
+    mockStartResearch.mockResolvedValue({ id: 'job-abc' })
+    renderPage()
+
+    await userEvent.click(screen.getByRole('button', { name: /approve & launch/i }))
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith({
+        to: '/research/$jobId',
+        params: { jobId: 'job-abc' },
+      })
+    })
+
+    // Simulate the reactive location update to the job route (empty state) and
+    // assert the guard does not fire a redirect to the brief form.
+    mockLocation.mockReturnValue({ state: {}, pathname: '/research/job-abc' })
+    expect(mockNavigate).not.toHaveBeenCalledWith({ to: '/research/new' })
+  })
+
   it('"Back to brief" navigates to /research/new', async () => {
     renderPage()
 

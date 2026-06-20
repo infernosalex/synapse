@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from '@tanstack/react-router'
 
 import { AppNavbar, SynapseBrandLink } from '../components/AppNavbar'
@@ -24,111 +24,165 @@ interface SubQRowProps {
   idx: number
   question: string
   isDropped: boolean
+  autoEdit: boolean
   onDrop: () => void
   onRestore: () => void
+  onSave: (text: string) => void
+  onCancelNew: () => void
 }
 
-function SubQRow({ idx, question, isDropped, onDrop, onRestore }: SubQRowProps) {
+const rowButtonStyle = {
+  border: '1px solid var(--line)',
+  background: 'transparent',
+  padding: '0.25rem 0.625rem',
+  fontFamily: 'var(--mono)',
+  fontSize: '0.625rem',
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+  color: 'var(--fg-2)',
+  cursor: 'pointer',
+} as const
+
+function SubQRow({
+  idx,
+  question,
+  isDropped,
+  autoEdit,
+  onDrop,
+  onRestore,
+  onSave,
+  onCancelNew,
+}: SubQRowProps) {
+  const [editing, setEditing] = useState(autoEdit)
+  const [draft, setDraft] = useState(question)
+  const inputRef = useRef<HTMLTextAreaElement | null>(null)
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus()
+  }, [editing])
+
+  const commit = useCallback(() => {
+    const trimmed = draft.trim()
+    // An empty edit on a freshly-added row is a no-op cancel; the parent drops
+    // the placeholder rather than persisting a blank sub-question.
+    if (!trimmed) {
+      onCancelNew()
+      return
+    }
+    onSave(trimmed)
+    setEditing(false)
+  }, [draft, onSave, onCancelNew])
+
+  const cancel = useCallback(() => {
+    setDraft(question)
+    setEditing(false)
+    onCancelNew()
+  }, [question, onCancelNew])
+
   return (
     <li
       style={{
         display: 'grid',
         gridTemplateColumns: '2rem 1fr auto',
         gap: '1rem',
-        alignItems: 'center',
+        alignItems: editing ? 'start' : 'center',
         padding: '1rem 0',
         borderBottom: '1px solid var(--line-soft)',
         opacity: isDropped ? 0.45 : 1,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        {/* Drag handle is visual only for v1; DnD reordering is a future enhancement */}
-        <span
-          className="mono"
-          style={{ fontSize: '0.625rem', color: 'var(--muted)', cursor: 'grab' }}
-        >
-          ⋮⋮
-        </span>
-        <span className="mono" style={{ fontSize: '0.6875rem', color: 'var(--scout)' }}>
-          S.{String(idx + 1).padStart(2, '0')}
-        </span>
-      </div>
-      <div>
-        <div
+      <span
+        className="mono"
+        style={{
+          fontSize: '0.6875rem',
+          color: 'var(--scout)',
+          paddingTop: editing ? '0.45rem' : 0,
+        }}
+      >
+        S.{String(idx + 1).padStart(2, '0')}
+      </span>
+      {editing ? (
+        <textarea
+          ref={inputRef}
+          aria-label={`Edit sub-question ${idx + 1}`}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault()
+              commit()
+            } else if (e.key === 'Escape') {
+              e.preventDefault()
+              cancel()
+            }
+          }}
+          rows={2}
           className="serif"
           style={{
+            width: '100%',
+            resize: 'vertical',
             fontSize: '1.0625rem',
             lineHeight: 1.4,
             fontWeight: 400,
-            textDecoration: isDropped ? 'line-through' : 'none',
-          }}
-        >
-          {question}
-        </div>
-        {isDropped && (
-          <div style={{ marginTop: '0.375rem' }}>
-            <span
-              className="mono"
-              style={{ fontSize: '0.625rem', color: 'var(--muted)', letterSpacing: '0.12em' }}
-            >
-              DROPPED
-            </span>
-          </div>
-        )}
-      </div>
-      <div style={{ display: 'flex', gap: '0.375rem' }}>
-        {/* Edit is deferred for now */}
-        <button
-          disabled
-          style={{
+            padding: '0.4rem 0.5rem',
             border: '1px solid var(--line)',
-            background: 'transparent',
-            padding: '0.25rem 0.625rem',
-            fontFamily: 'var(--mono)',
-            fontSize: '0.625rem',
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            color: 'var(--fg-2)',
-            cursor: 'not-allowed',
-            opacity: 0.4,
+            background: 'var(--bg)',
+            color: 'var(--fg)',
           }}
-        >
-          Edit
-        </button>
-        {isDropped ? (
-          <button
-            onClick={onRestore}
+        />
+      ) : (
+        <div>
+          <div
+            className="serif"
             style={{
-              border: '1px solid var(--line)',
-              background: 'transparent',
-              padding: '0.25rem 0.625rem',
-              fontFamily: 'var(--mono)',
-              fontSize: '0.625rem',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: 'var(--fg-2)',
-              cursor: 'pointer',
+              fontSize: '1.0625rem',
+              lineHeight: 1.4,
+              fontWeight: 400,
+              textDecoration: isDropped ? 'line-through' : 'none',
             }}
           >
-            Restore
-          </button>
+            {question}
+          </div>
+          {isDropped && (
+            <div style={{ marginTop: '0.375rem' }}>
+              <span
+                className="mono"
+                style={{ fontSize: '0.625rem', color: 'var(--muted)', letterSpacing: '0.12em' }}
+              >
+                DROPPED
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: '0.375rem' }}>
+        {editing ? (
+          <>
+            <button
+              onClick={commit}
+              style={{ ...rowButtonStyle, color: 'var(--fg)', borderColor: 'var(--fg)' }}
+            >
+              Save
+            </button>
+            <button onClick={cancel} style={rowButtonStyle}>
+              Cancel
+            </button>
+          </>
         ) : (
-          <button
-            onClick={onDrop}
-            style={{
-              border: '1px solid var(--line)',
-              background: 'transparent',
-              padding: '0.25rem 0.625rem',
-              fontFamily: 'var(--mono)',
-              fontSize: '0.625rem',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: 'var(--fg-2)',
-              cursor: 'pointer',
-            }}
-          >
-            Drop
-          </button>
+          <>
+            <button onClick={() => setEditing(true)} style={rowButtonStyle}>
+              Edit
+            </button>
+            {isDropped ? (
+              <button onClick={onRestore} style={rowButtonStyle}>
+                Restore
+              </button>
+            ) : (
+              <button onClick={onDrop} style={rowButtonStyle}>
+                Drop
+              </button>
+            )}
+          </>
         )}
       </div>
     </li>
@@ -183,8 +237,14 @@ export default function ResearchPreviewPage() {
   // case of a stale tab where the schema has drifted; the redirect runs from
   // an effect rather than during render to avoid a "state update during
   // render" warning under StrictMode.
-  const rawState = (location.state ?? {}) as unknown
-  const parsed = previewStateSchema.safeParse(rawState)
+  //
+  // The parse is frozen on first render. `useLocation` is reactive, so when
+  // the launch handler navigates to `/research/$jobId` this component briefly
+  // re-renders with the destination's (empty) state before it unmounts.
+  // Re-parsing on every render would read that empty state as invalid and the
+  // guard below would redirect to `/research/new`, hijacking the launch.
+  // Freezing keeps this a true mount-time check.
+  const [parsed] = useState(() => previewStateSchema.safeParse((location.state ?? {}) as unknown))
 
   useEffect(() => {
     if (!parsed.success) {
@@ -207,6 +267,10 @@ function PreviewContent({ initialState }: { initialState: PreviewState }) {
   const [subQuestions, setSubQuestions] = useState<string[]>(initialState.subQuestions)
   const [dropped, setDropped] = useState<Set<number>>(new Set())
   const [launchError, setLaunchError] = useState<string | null>(null)
+  // Index of a freshly-added row that should mount in edit mode. It is always
+  // the last entry, so cancelling an empty add can safely trim the tail
+  // without disturbing the index-based `dropped` set.
+  const [editingNewIdx, setEditingNewIdx] = useState<number | null>(null)
 
   const { formData } = initialState
 
@@ -225,6 +289,27 @@ function PreviewContent({ initialState }: { initialState: PreviewState }) {
     })
   }, [])
 
+  const handleSaveQuestion = useCallback((idx: number, text: string) => {
+    setSubQuestions((prev) => prev.map((q, i) => (i === idx ? text : q)))
+    setEditingNewIdx((cur) => (cur === idx ? null : cur))
+  }, [])
+
+  const handleAddQuestion = useCallback(() => {
+    setEditingNewIdx(subQuestions.length)
+    setSubQuestions((prev) => [...prev, ''])
+  }, [subQuestions.length])
+
+  const handleCancelNew = useCallback(
+    (idx: number) => {
+      // Only the just-added, still-empty trailing row is removed; cancels on
+      // existing rows are a no-op here (the row restores its own text locally).
+      if (editingNewIdx !== idx) return
+      setSubQuestions((prev) => prev.slice(0, -1))
+      setEditingNewIdx(null)
+    },
+    [editingNewIdx],
+  )
+
   const handleRegenerate = useCallback(async () => {
     try {
       const result = await previewResearch.mutateAsync({
@@ -242,7 +327,10 @@ function PreviewContent({ initialState }: { initialState: PreviewState }) {
 
   const handleLaunch = useCallback(async () => {
     setLaunchError(null)
-    const kept = subQuestions.filter((_, i) => !dropped.has(i))
+    const kept = subQuestions
+      .filter((_, i) => !dropped.has(i))
+      .map((q) => q.trim())
+      .filter((q) => q.length > 0)
     if (kept.length === 0) {
       // Belt-and-braces: the launch button is disabled in this state, but a
       // direct keyboard activation could still fire. The backend currently
@@ -373,8 +461,7 @@ function PreviewContent({ initialState }: { initialState: PreviewState }) {
               .
             </h2>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              {/* Add question is deferred for now */}
-              <Button variant="ghost" size="sm" disabled>
+              <Button variant="ghost" size="sm" onClick={handleAddQuestion}>
                 + Add question
               </Button>
               <Button
@@ -415,8 +502,11 @@ function PreviewContent({ initialState }: { initialState: PreviewState }) {
                 idx={i}
                 question={q}
                 isDropped={dropped.has(i)}
+                autoEdit={editingNewIdx === i}
                 onDrop={() => handleDrop(i)}
                 onRestore={() => handleRestore(i)}
+                onSave={(text) => handleSaveQuestion(i, text)}
+                onCancelNew={() => handleCancelNew(i)}
               />
             ))}
           </ol>
