@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { act, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import JobProgressPage from './JobProgressPage'
@@ -111,6 +111,15 @@ describe('JobProgressPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.useFakeTimers()
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockImplementation(() => ({
+        matches: false,
+        media: '',
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    )
   })
 
   afterEach(() => {
@@ -131,14 +140,13 @@ describe('JobProgressPage', () => {
     stubStream([SNAPSHOT_SCOUTING])
     renderPage()
 
-    // Topic should appear in the brief bar.
-    expect(screen.getByText(/"Why has CEE VC diverged from Western Europe\?"/)).toBeInTheDocument()
+    // Topic should appear in the masthead restatement.
+    expect(screen.getByText(/“Why has CEE VC diverged from Western Europe\?”/)).toBeInTheDocument()
 
-    // Scout card carries "Running now" badge.
-    expect(screen.getAllByText('Running now').length).toBeGreaterThan(0)
+    // The active Scout block carries the "Working" badge.
+    expect(screen.getAllByText('Working').length).toBeGreaterThan(0)
 
-    // Phase rail: Scout should be active (no ✓ check).
-    // Check the pipeline section is rendered.
+    // The pipeline document is rendered.
     expect(screen.getByLabelText('pipeline progress')).toBeInTheDocument()
   })
 
@@ -174,6 +182,90 @@ describe('JobProgressPage', () => {
     renderPage()
 
     expect(screen.getByText('Executive Summary')).toBeInTheDocument()
+  })
+
+  it('renders Scribe draft markdown instead of raw claim markup', () => {
+    const scribingSnapshot: JobMessage = {
+      type: 'snapshot',
+      job_id: mockJobId,
+      job: {
+        id: mockJobId,
+        topic: 'Linus Torvalds biography',
+        status: 'synthesizing',
+        created_at: new Date(Date.now() - 60_000).toISOString(),
+      },
+    }
+    const source: JobMessage = {
+      type: 'source_found',
+      job_id: mockJobId,
+      source: {
+        id: 's1',
+        title: 'IEEE Profile',
+        url: 'https://ieee.org/profile',
+        credibility: 0.9,
+        relevance: 0.85,
+        snippet: 'Award details.',
+      },
+    }
+    const section: JobMessage = {
+      type: 'section_drafted',
+      job_id: mockJobId,
+      section: {
+        id: 'sec-1',
+        heading: 'Awards',
+        body_md: 'He received the prize <span data-claim="sec1.c1">in 2012</span>.[^s1]',
+        cited_source_ids: ['s1'],
+      },
+    }
+    stubStream([scribingSnapshot, source, section])
+    renderPage()
+
+    expect(screen.getByText(/in 2012/)).toBeInTheDocument()
+    expect(screen.queryByText(/data-claim/)).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '[1]' })).toBeInTheDocument()
+  })
+
+  it('previews a hovered outline section in the Scribe panel', () => {
+    const scribingSnapshot: JobMessage = {
+      type: 'snapshot',
+      job_id: mockJobId,
+      job: {
+        id: mockJobId,
+        topic: 'Biography',
+        status: 'synthesizing',
+        created_at: new Date(Date.now() - 60_000).toISOString(),
+      },
+    }
+    const firstSection: JobMessage = {
+      type: 'section_drafted',
+      job_id: mockJobId,
+      section: {
+        id: 'sec-1',
+        heading: 'Early life',
+        body_md: 'Born in Helsinki.',
+        cited_source_ids: [],
+      },
+    }
+    const secondSection: JobMessage = {
+      type: 'section_drafted',
+      job_id: mockJobId,
+      section: {
+        id: 'sec-2',
+        heading: 'Linux',
+        body_md: 'Created Linux in 1991.',
+        cited_source_ids: [],
+      },
+    }
+    stubStream([scribingSnapshot, firstSection, secondSection])
+    renderPage()
+
+    expect(screen.getByText('Created Linux in 1991.')).toBeInTheDocument()
+
+    const earlyLife = screen.getByRole('button', { name: /Early life/i })
+    fireEvent.mouseEnter(earlyLife)
+
+    expect(screen.getByText('Born in Helsinki.')).toBeInTheDocument()
+    expect(screen.queryByText('Created Linux in 1991.')).not.toBeInTheDocument()
   })
 
   it('navigates to the report page after job_completed (with delay)', async () => {
