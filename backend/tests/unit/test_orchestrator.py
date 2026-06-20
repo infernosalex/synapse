@@ -502,6 +502,47 @@ async def test_pipeline_does_not_seed_scout_for_a_root_job(
     assert patched_orchestrator["scout_seed_received"] is None
 
 
+async def test_pipeline_constructs_agents_with_depth_profile_knobs(
+    patched_orchestrator: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.agents.depth import PROFILES
+
+    captured: dict[str, dict[str, object]] = {}
+
+    class _CapturingScout:
+        def __init__(self, model: str, **kwargs: object) -> None:
+            captured["scout"] = dict(kwargs)
+
+    class _CapturingScribe:
+        def __init__(self, model: str, **kwargs: object) -> None:
+            captured["scribe"] = dict(kwargs)
+
+    monkeypatch.setattr(orch, "ScoutAgent", _CapturingScout)
+    monkeypatch.setattr(orch, "ScribeAgent", _CapturingScribe)
+
+    job = patched_orchestrator["job"]
+    job.depth = Depth.DEEP
+
+    await orch.run_pipeline(
+        job_id=patched_orchestrator["job_id"],
+        session_factory=_make_session_factory(job),
+        publish=_noop,
+        cleanup=_noop_cleanup,
+    )
+
+    deep = PROFILES[Depth.DEEP]
+    assert captured["scout"]["sub_question_min"] == deep.sub_question_min
+    assert captured["scout"]["sub_question_max"] == deep.sub_question_max
+    assert captured["scout"]["results_per_question"] == deep.results_per_question
+    assert captured["scout"]["text_max_characters"] == deep.text_max_characters
+    assert captured["scribe"]["section_min"] == deep.section_min
+    assert captured["scribe"]["section_max"] == deep.section_max
+    assert captured["scribe"]["summary_sentence_min"] == deep.summary_sentence_min
+    assert captured["scribe"]["summary_sentence_max"] == deep.summary_sentence_max
+    assert captured["scribe"]["body_detail"] == deep.body_detail
+
+
 async def _noop(_event: ProgressEvent) -> None:
     return None
 

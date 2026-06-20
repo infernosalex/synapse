@@ -10,7 +10,13 @@ import httpx
 import pytest
 import respx
 
-from app.agents.scout import ScoutAgent, ScoutValidationError, _canonical_url, _RawSource
+from app.agents.scout import (
+    ScoutAgent,
+    ScoutValidationError,
+    _build_decompose_system_prompt,
+    _canonical_url,
+    _RawSource,
+)
 from app.agents.scout_graph import (
     _MAX_MERGED_SEED_SOURCES,
     _MAX_SEED_SOURCES,
@@ -120,10 +126,8 @@ async def test_decompose_rejects_too_few_sub_questions(
         )
     )
     agent = ScoutAgent(model="test/model", search_client=_DummySearchClient([]))
-    # Pydantic's min_length=3 inside _SubQuestions makes the parsed shape
-    # invalid; after the retry exhausts, decompose should surface a typed
-    # ScoutValidationError rather than letting a generic langchain parser
-    # exception bubble up.
+    # One sub-question is below the default standard minimum; after retries exhaust,
+    # decompose should surface a typed ScoutValidationError.
     with pytest.raises(ScoutValidationError, match="failed to produce"):
         await agent.decompose("Topic")
 
@@ -165,6 +169,60 @@ async def test_decompose_retries_on_empty_response(
     assert "failed validation" in body["messages"][-1]["content"]
 
 
+def test_decompose_prompt_reflects_shallow_bounds() -> None:
+    agent = ScoutAgent(
+        model="test/model",
+        search_client=_DummySearchClient([]),  # type: ignore[arg-type]
+        sub_question_min=2,
+        sub_question_max=3,
+    )
+    assert "between 2 and 3" in agent._decompose_system_prompt
+
+
+def test_decompose_prompt_reflects_deep_bounds() -> None:
+    agent = ScoutAgent(
+        model="test/model",
+        search_client=_DummySearchClient([]),  # type: ignore[arg-type]
+        sub_question_min=5,
+        sub_question_max=8,
+    )
+    assert "between 5 and 8" in agent._decompose_system_prompt
+
+
+def test_validate_sub_questions_accepts_in_range_count() -> None:
+    from app.agents.scout import _SubQuestions
+
+    agent = ScoutAgent(
+        model="test/model",
+        search_client=_DummySearchClient([]),  # type: ignore[arg-type]
+        sub_question_min=2,
+        sub_question_max=3,
+    )
+    agent._validate_sub_questions(
+        _SubQuestions(sub_questions=["a", "b"]),
+    )
+
+
+def test_validate_sub_questions_rejects_out_of_range_count() -> None:
+    from app.agents.scout import _SubQuestions
+
+    agent = ScoutAgent(
+        model="test/model",
+        search_client=_DummySearchClient([]),  # type: ignore[arg-type]
+        sub_question_min=2,
+        sub_question_max=3,
+    )
+    with pytest.raises(ValueError, match="need between 2 and 3"):
+        agent._validate_sub_questions(
+            _SubQuestions(sub_questions=["a", "b", "c", "d"]),
+        )
+
+
+def test_build_decompose_system_prompt_interpolates_bounds() -> None:
+    prompt = _build_decompose_system_prompt(5, 8)
+    assert "between 5 and 8" in prompt
+
+
 # ---- search ----------------------------------------------------------------
 
 
@@ -174,7 +232,9 @@ class _DummySearchClient:
     def __init__(self, results: list[Any]) -> None:
         self._results = results
 
-    async def search(self, query: str, *, num_results: int = 5) -> list[Any]:
+    async def search(
+        self, query: str, *, num_results: int = 5, max_characters: int = 8000
+    ) -> list[Any]:
         return list(self._results)
 
 
@@ -186,7 +246,9 @@ async def test_search_uses_trafilatura_when_exa_text_missing(
 
     fetched: list[str] = []
 
-    async def fake_fetch(url: str, *, timeout: float = 15.0) -> str | None:
+    async def fake_fetch(
+        url: str, *, timeout: float = 15.0, max_characters: int = 8000
+    ) -> str | None:
         fetched.append(url)
         return "fallback body"
 
@@ -217,6 +279,39 @@ async def test_search_uses_trafilatura_when_exa_text_missing(
     assert fetched == ["https://example.com/no-text"]
     assert raw[0].content == "fallback body"
     assert raw[1].content == "exa supplied body"
+
+
+async def test_search_passes_text_max_characters_to_trafilatura_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.agents import scout as scout_module
+    from app.services.search import ExaResult
+
+    seen: list[int] = []
+
+    async def fake_fetch(
+        url: str, *, timeout: float = 15.0, max_characters: int = 8000
+    ) -> str | None:
+        seen.append(max_characters)
+        return "body"
+
+    monkeypatch.setattr(scout_module, "fetch_article_text", fake_fetch)
+
+    exa = _DummySearchClient(
+        [
+            ExaResult.model_validate(
+                {"url": "https://example.com/no-text", "title": "No Text", "text": None}
+            ),
+        ]
+    )
+    agent = ScoutAgent(
+        model="test/model",
+        search_client=exa,  # type: ignore[arg-type]
+        text_max_characters=4000,
+    )
+    await agent.search("q")
+
+    assert seen == [4000]
 
 
 # ---- deduplicate -----------------------------------------------------------

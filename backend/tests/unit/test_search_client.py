@@ -14,6 +14,7 @@ from app.services.search import (
     ExaResult,
     ExaSearchClient,
     derive_snippet,
+    fetch_article_text,
 )
 
 
@@ -93,3 +94,35 @@ def test_derive_snippet_collapses_whitespace_and_truncates() -> None:
 def test_derive_snippet_uses_fallback_when_text_empty() -> None:
     assert derive_snippet(None, fallback="t") == "t"
     assert derive_snippet("", fallback="t") == "t"
+
+
+@pytest.mark.respx(base_url=EXA_BASE_URL)
+async def test_search_sends_max_characters_and_num_results(respx_mock: respx.MockRouter) -> None:
+    route = respx_mock.post("/search").mock(
+        return_value=httpx.Response(200, json={"results": []}),
+    )
+
+    async with httpx.AsyncClient() as http:
+        client = ExaSearchClient(api_key="k", http_client=http)
+        await client.search("quantum", num_results=8, max_characters=12000)
+
+    import json as _json
+
+    body = _json.loads(route.calls.last.request.content)
+    assert body["numResults"] == 8
+    assert body["contents"]["text"]["maxCharacters"] == 12000
+
+
+async def test_fetch_article_text_truncates_to_max_characters(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import trafilatura
+
+    long_text = "x" * 20_000
+
+    monkeypatch.setattr(trafilatura, "fetch_url", lambda _url: "<html></html>")
+    monkeypatch.setattr(trafilatura, "extract", lambda *_a, **_k: long_text)
+
+    result = await fetch_article_text("https://example.com", max_characters=4000)
+    assert result is not None
+    assert len(result) == 4000

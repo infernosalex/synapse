@@ -10,7 +10,7 @@ import httpx
 import pytest
 import respx
 
-from app.agents.scribe import ScribeAgent
+from app.agents.scribe import ScribeAgent, _build_system_prompt
 from app.agents.scribe_graph import run_scribe
 from app.models.events import (
     ProgressEvent,
@@ -76,6 +76,33 @@ def _llm_payload(*, sections: list[dict[str, Any]] | None = None) -> str:
 
 
 # ---- agent: happy path -----------------------------------------------------
+
+
+def test_system_prompt_contains_depth_specific_section_and_summary_counts() -> None:
+    agent = ScribeAgent(
+        model="test/model",
+        section_min=5,
+        section_max=8,
+        summary_sentence_min=4,
+        summary_sentence_max=6,
+        body_detail="thorough",
+    )
+    assert "5-8 sections" in agent._system_prompt
+    assert "4-6 sentences" in agent._system_prompt
+    assert "thorough detail" in agent._system_prompt
+
+
+def test_build_system_prompt_standard_defaults() -> None:
+    prompt = _build_system_prompt(
+        section_min=3,
+        section_max=5,
+        summary_sentence_min=2,
+        summary_sentence_max=4,
+        body_detail="standard",
+    )
+    assert "3-5 sections" in prompt
+    assert "2-4 sentences" in prompt
+    assert "balanced level of detail" in prompt
 
 
 @pytest.mark.respx(base_url=OPENROUTER_BASE_URL)

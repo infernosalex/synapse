@@ -10,6 +10,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.depth import profile_for
 from app.agents.scout import ScoutAgent, ScoutValidationError
 from app.auth.dependencies import current_active_user
 from app.auth.models import User
@@ -139,9 +140,14 @@ async def preview_research(
     can review and drop them before committing to a full research run.
     """
     async with httpx.AsyncClient() as http:
+        profile = profile_for(payload.depth)
         agent = ScoutAgent(
             model=payload.models["scout"],
             search_client=ExaSearchClient(http_client=http),
+            sub_question_min=profile.sub_question_min,
+            sub_question_max=profile.sub_question_max,
+            results_per_question=profile.results_per_question,
+            text_max_characters=profile.text_max_characters,
         )
         try:
             sub_questions = await agent.decompose(payload.topic)

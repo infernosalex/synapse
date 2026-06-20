@@ -276,6 +276,22 @@ async def test_preview_returns_sub_questions(authed_client_stub_db: AsyncClient)
     assert all(isinstance(q, str) for q in body["sub_questions"])
 
 
+async def test_preview_passes_depth_bounds_to_scout(authed_client_stub_db: AsyncClient) -> None:
+    with patch("app.api.routes.ScoutAgent") as scout_cls:
+        scout_cls.return_value.decompose = AsyncMock(return_value=["Q1?", "Q2?"])
+        response = await authed_client_stub_db.post(
+            "/api/research/preview",
+            json={**_PREVIEW_BODY, "depth": "deep"},
+        )
+
+    assert response.status_code == 200
+    kwargs = scout_cls.call_args.kwargs
+    assert kwargs["sub_question_min"] == 5
+    assert kwargs["sub_question_max"] == 8
+    assert kwargs["results_per_question"] == 8
+    assert kwargs["text_max_characters"] == 12000
+
+
 async def test_preview_handles_scout_validation_error(authed_client_stub_db: AsyncClient) -> None:
     with patch(
         "app.api.routes.ScoutAgent.decompose",

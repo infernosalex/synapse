@@ -15,7 +15,8 @@ from urllib.parse import urlparse, urlunparse
 import structlog
 from pydantic import BaseModel, Field
 
-from app.models.research import Source
+from app.agents.depth import PROFILES, SUB_QUESTION_STRUCT_MAX, SUB_QUESTION_STRUCT_MIN
+from app.models.research import Depth, Source
 from app.services.credibility import combine_credibility, domain_prior
 from app.services.llm import (
     StructuredRetryError,
@@ -32,10 +33,7 @@ from app.services.search import (
 
 _log = structlog.get_logger(__name__)
 
-# Bounds on Scout's output. Top-end caps protect against runaway LLMs producing 50 sub-questions; bottom-end ensures the model engages with the prompt.
-_MIN_SUB_QUESTIONS = 3
-_MAX_SUB_QUESTIONS = 7
-_RESULTS_PER_QUESTION = 5
+_STANDARD = PROFILES[Depth.STANDARD]
 
 # One initial attempt plus this many retries when the decompose call returns malformed JSON or a sub-question list that violates the schema bounds. Mirrors the Scribe/Critic pattern; the retry replays the model's previous (bad) response back as an assistant turn so the model can see exactly what it produced.
 _MAX_DECOMPOSE_RETRIES = 1
@@ -44,18 +42,20 @@ _MAX_DECOMPOSE_RETRIES = 1
 class ScoutValidationError(RuntimeError):
     """Raised when Scout cannot produce a usable sub-question list after all retries.
 
-    Distinct from network errors: this means the model was reachable but its response was structurally unusable (empty body, non-JSON, wrong shape, or a list outside `[_MIN_SUB_QUESTIONS, _MAX_SUB_QUESTIONS]`).
+    Distinct from network errors: this means the model was reachable but its response was structurally unusable (empty body, non-JSON, wrong shape, or a list outside the configured per-depth bounds).
     """
 
 
-_DECOMPOSE_SYSTEM_PROMPT = (
-    "You are a senior research analyst. Decompose a research topic into focused, "
-    "mutually-distinct sub-questions whose answers together cover the topic. "
-    "Each sub-question must be answerable from public sources and be specific "
-    "enough to drive a targeted web search. Return strictly valid JSON matching "
-    'the shape {"sub_questions": [string, ...]} with between '
-    f"{_MIN_SUB_QUESTIONS} and {_MAX_SUB_QUESTIONS} items, no commentary, no markdown."
-)
+def _build_decompose_system_prompt(sub_question_min: int, sub_question_max: int) -> str:
+    return (
+        "You are a senior research analyst. Decompose a research topic into focused, "
+        "mutually-distinct sub-questions whose answers together cover the topic. "
+        "Each sub-question must be answerable from public sources and be specific "
+        "enough to drive a targeted web search. Return strictly valid JSON matching "
+        'the shape {"sub_questions": [string, ...]} with between '
+        f"{sub_question_min} and {sub_question_max} items, no commentary, no markdown."
+    )
+
 
 _SCORE_SYSTEM_PROMPT = (
     "You evaluate web sources for a research project. For each source, score:\n"
@@ -86,9 +86,11 @@ class _RawSource:
 
 
 class _SubQuestions(BaseModel):
+    # Structural guard matching the shallow..deep envelope in `depth.PROFILES`.
+    # Per-depth bounds are enforced in _validate_sub_questions.
     sub_questions: list[str] = Field(
-        min_length=_MIN_SUB_QUESTIONS,
-        max_length=_MAX_SUB_QUESTIONS,
+        min_length=SUB_QUESTION_STRUCT_MIN,
+        max_length=SUB_QUESTION_STRUCT_MAX,
     )
 
 
@@ -113,14 +115,23 @@ class ScoutAgent:
         model: str,
         *,
         search_client: ExaSearchClient,
-        results_per_question: int = _RESULTS_PER_QUESTION,
+        sub_question_min: int = _STANDARD.sub_question_min,
+        sub_question_max: int = _STANDARD.sub_question_max,
+        results_per_question: int = _STANDARD.results_per_question,
+        text_max_characters: int = _STANDARD.text_max_characters,
     ) -> None:
         self.model = model
         self._search = search_client
+        self.sub_question_min = sub_question_min
+        self.sub_question_max = sub_question_max
         self._results_per_question = results_per_question
+        self._text_max_characters = text_max_characters
+        self._decompose_system_prompt = _build_decompose_system_prompt(
+            sub_question_min, sub_question_max
+        )
 
     async def decompose(self, topic: str) -> list[str]:
-        """Break a topic into 3-7 focused sub-questions.
+        """Break a topic into focused sub-questions within the configured depth bounds.
 
         Routed through `invoke_structured_with_retry`, which is robust to the two failure modes we've seen in production: an empty response body (model returns `""`, which the JSON parser cannot decode) and a list that violates the schema bounds. Without that wrapper the langchain JSON parser raises `OutputParserException` mid-pipeline and the whole job dies.
 
@@ -132,7 +143,7 @@ class ScoutAgent:
             include_raw=True,
         )
         messages: list[Any] = [
-            {"role": "system", "content": dated_system_prompt(_DECOMPOSE_SYSTEM_PROMPT)},
+            {"role": "system", "content": dated_system_prompt(self._decompose_system_prompt)},
             {"role": "user", "content": f"Topic: {topic}"},
         ]
 
@@ -140,8 +151,8 @@ class ScoutAgent:
             parsed = await invoke_structured_with_retry(
                 chat,
                 messages,
-                validate=_validate_sub_questions,
-                retry_feedback=_decompose_retry_feedback,
+                validate=self._validate_sub_questions,
+                retry_feedback=self._decompose_retry_feedback,
                 max_retries=_MAX_DECOMPOSE_RETRIES,
                 log_event="scout_decompose_failed",
                 log=_log,
@@ -157,12 +168,16 @@ class ScoutAgent:
 
     async def search(self, query: str) -> list[_RawSource]:
         """Run a single Exa search; fall back to trafilatura on results without text."""
-        results = await self._search.search(query, num_results=self._results_per_question)
+        results = await self._search.search(
+            query,
+            num_results=self._results_per_question,
+            max_characters=self._text_max_characters,
+        )
         raw: list[_RawSource] = []
         for r in results:
             content = r.text
             if not content:
-                content = await fetch_article_text(r.url)
+                content = await fetch_article_text(r.url, max_characters=self._text_max_characters)
             raw.append(_to_raw_source(r, content))
         return raw
 
@@ -245,30 +260,28 @@ class ScoutAgent:
             return {}
         return {r.index: r for r in result.ratings if 0 <= r.index < len(sources)}
 
+    def _validate_sub_questions(self, parsed: _SubQuestions) -> None:
+        """Validator passed to `invoke_structured_with_retry` for `decompose`.
 
-def _validate_sub_questions(parsed: _SubQuestions) -> None:
-    """Validator passed to `invoke_structured_with_retry` for `decompose`.
+        Pydantic's `min_length` / `max_length` already enforces the structural guard, but stripping blank entries can drop the count below the minimum, which the helper would otherwise miss. Re-checking after the strip keeps the contract honest.
+        """
+        cleaned = [q.strip() for q in parsed.sub_questions if q.strip()]
+        if not self.sub_question_min <= len(cleaned) <= self.sub_question_max:
+            msg = (
+                f"after stripping blanks, got {len(cleaned)} sub-questions; "
+                f"need between {self.sub_question_min} and {self.sub_question_max}"
+            )
+            raise ValueError(msg)
 
-    Pydantic's `min_length` / `max_length` already enforces the bounds, but stripping blank entries can drop the count below the minimum, which the helper would otherwise miss. Re-checking after the strip keeps the contract honest.
-    """
-    cleaned = [q.strip() for q in parsed.sub_questions if q.strip()]
-    if not _MIN_SUB_QUESTIONS <= len(cleaned) <= _MAX_SUB_QUESTIONS:
-        msg = (
-            f"after stripping blanks, got {len(cleaned)} sub-questions; "
-            f"need between {_MIN_SUB_QUESTIONS} and {_MAX_SUB_QUESTIONS}"
+    def _decompose_retry_feedback(self, error: str) -> str:
+        """Decompose retries re-state the schema verbatim because the failure mode we hit most often is the model emitting an empty body or commentary, not a near-miss the model can correct from a generic 'try again'."""
+        return (
+            f"Your previous response failed validation: {error}\n\n"
+            "Reply with strictly valid JSON of the form "
+            '{"sub_questions": [string, ...]} with between '
+            f"{self.sub_question_min} and {self.sub_question_max} non-empty entries. "
+            "No commentary, no markdown fence."
         )
-        raise ValueError(msg)
-
-
-def _decompose_retry_feedback(error: str) -> str:
-    """Decompose retries re-state the schema verbatim because the failure mode we hit most often is the model emitting an empty body or commentary, not a near-miss the model can correct from a generic 'try again'."""
-    return (
-        f"Your previous response failed validation: {error}\n\n"
-        "Reply with strictly valid JSON of the form "
-        '{"sub_questions": [string, ...]} with between '
-        f"{_MIN_SUB_QUESTIONS} and {_MAX_SUB_QUESTIONS} non-empty entries. "
-        "No commentary, no markdown fence."
-    )
 
 
 def _to_raw_source(r: ExaResult, content: str | None) -> _RawSource:

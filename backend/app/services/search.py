@@ -72,7 +72,11 @@ class ExaSearchClient:
             await self._http.aclose()
 
     async def search(
-        self, query: str, *, num_results: int = _DEFAULT_NUM_RESULTS
+        self,
+        query: str,
+        *,
+        num_results: int = _DEFAULT_NUM_RESULTS,
+        max_characters: int = _CONTENT_MAX_CHARS,
     ) -> list[ExaResult]:
         """Run a single search; returns up to `num_results` parsed results.
 
@@ -83,7 +87,7 @@ class ExaSearchClient:
             "query": query,
             "type": "auto",
             "numResults": num_results,
-            "contents": {"text": {"maxCharacters": _CONTENT_MAX_CHARS}},
+            "contents": {"text": {"maxCharacters": max_characters}},
         }
         headers = {"x-api-key": self._api_key, "Content-Type": "application/json"}
         response = await self._http.post(f"{EXA_BASE_URL}/search", json=body, headers=headers)
@@ -93,7 +97,12 @@ class ExaSearchClient:
         return [ExaResult.model_validate(item) for item in raw_results]
 
 
-async def fetch_article_text(url: str, *, timeout: float = 15.0) -> str | None:
+async def fetch_article_text(
+    url: str,
+    *,
+    timeout: float = 15.0,
+    max_characters: int = _CONTENT_MAX_CHARS,
+) -> str | None:
     """Fetch and extract the main article text for a URL using trafilatura.
 
     Returns `None` if the page can't be downloaded or trafilatura can't recover prose. Runs the synchronous trafilatura calls in a worker thread because both `fetch_url` and `extract` block on network and parsing respectively.
@@ -116,7 +125,7 @@ async def fetch_article_text(url: str, *, timeout: float = 15.0) -> str | None:
     )
     if not text:
         return None
-    return text[:_CONTENT_MAX_CHARS]
+    return text[:max_characters]
 
 
 def derive_snippet(text: str | None, fallback: str = "") -> str:

@@ -26,6 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.agents.critic import CriticAgent
 from app.agents.critic_graph import run_critic
+from app.agents.depth import profile_for
 from app.agents.scout import ScoutAgent
 from app.agents.scout_graph import EventPublisher, run_scout
 from app.agents.scribe import ScribeAgent
@@ -184,11 +185,23 @@ async def run_pipeline(
     owns_http = http_client is None
     http = http_client or httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0))
     try:
+        profile = profile_for(job.depth)
         scout_agent = ScoutAgent(
             model=job.models["scout"],
             search_client=ExaSearchClient(http_client=http),
+            sub_question_min=profile.sub_question_min,
+            sub_question_max=profile.sub_question_max,
+            results_per_question=profile.results_per_question,
+            text_max_characters=profile.text_max_characters,
         )
-        scribe_agent = ScribeAgent(model=job.models["scribe"])
+        scribe_agent = ScribeAgent(
+            model=job.models["scribe"],
+            section_min=profile.section_min,
+            section_max=profile.section_max,
+            summary_sentence_min=profile.summary_sentence_min,
+            summary_sentence_max=profile.summary_sentence_max,
+            body_detail=profile.body_detail,
+        )
         critic_agent = CriticAgent(model=job.models["critic"])
 
         runner = _build_graph(

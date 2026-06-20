@@ -14,8 +14,10 @@ from uuid import UUID, uuid4
 import structlog
 from pydantic import BaseModel
 
+from app.agents.depth import PROFILES, BodyDetail
 from app.models.research import (
     Contradiction,
+    Depth,
     ReportSection,
     ScribeReport,
     Source,
@@ -38,41 +40,63 @@ _log = structlog.get_logger(__name__)
 # One initial attempt plus this many retries on validation failure. Kept at one for cost reasons; the conversation-aware retry below means a single retry is meaningfully different from the initial attempt (the model sees its previous bad output), so this is more useful than it would be otherwise.
 _MAX_VALIDATION_RETRIES = 1
 
-_SYSTEM_PROMPT = """\
+_STANDARD = PROFILES[Depth.STANDARD]
+
+_BODY_DETAIL_INSTRUCTIONS: dict[BodyDetail, str] = {
+    "concise": "Keep prose concise.",
+    "standard": (
+        "Use a balanced level of detail: one or two supporting points per claim, "
+        "avoid exhaustive tangents."
+    ),
+    "thorough": "Write with thorough detail and supporting evidence.",
+}
+
+
+def _build_system_prompt(
+    *,
+    section_min: int,
+    section_max: int,
+    summary_sentence_min: int,
+    summary_sentence_max: int,
+    body_detail: BodyDetail,
+) -> str:
+    detail_instruction = _BODY_DETAIL_INSTRUCTIONS[body_detail]
+    return f"""\
 You are a research synthesist. Given a topic, a list of sub-questions, and a curated set of web sources, write a structured, cited report.
 
 Output format
 -------------
 Return strictly valid JSON matching this shape (no commentary, no markdown fence):
 
-{
+{{
   "title": "<short title>",
-  "summary_md": "<executive summary, plain GFM prose, 2-4 sentences — no claim spans, no citations>",
+  "summary_md": "<executive summary, plain GFM prose, {summary_sentence_min}-{summary_sentence_max} sentences — no claim spans, no citations>",
   "sections": [
-    {
+    {{
       "id": "sec1",
       "heading": "<section heading>",
       "body_md": "<GFM markdown body — see Body rules below>"
-    },
+    }},
     ...
   ],
   "contradictions": [
-    {
+    {{
       "topic": "<short label for the point of disagreement>",
       "positions": [
-        { "statement": "<what these sources claim>", "source_ids": ["sX"] },
-        { "statement": "<the conflicting claim>", "source_ids": ["sY"] }
+        {{ "statement": "<what these sources claim>", "source_ids": ["sX"] }},
+        {{ "statement": "<the conflicting claim>", "source_ids": ["sY"] }}
       ]
-    }
+    }}
   ],
   "follow_ups": ["<follow-up question>", ...]
-}
+}}
 
 Field rules
 -----------
 - `summary_md`: plain prose only. It renders on its own, away from the sources, so it must contain **no** `<span data-claim>` wrappers and **no** `[^sX]` citations — those belong solely in section bodies. Save the evidence for the sections.
-- `id`: sequential `sec1`, `sec2`, `sec3`, ... with no gaps. Aim for 3-6 sections with descriptive headings.
+- `id`: sequential `sec1`, `sec2`, `sec3`, ... with no gaps. Aim for {section_min}-{section_max} sections with descriptive headings.
 - `contradictions`: record only genuine factual disagreements. Each entry names the disputed `topic` and splits it into >= 2 **positions** — each a short `statement` of what one side claims plus the `source_ids` advancing it. A source may appear on **only one** position; never put the same id on two sides, and never invent ids. Use an **empty array** when sources do not conflict.
+- Section body detail: {detail_instruction}
 
 Body rules (mandatory — most failures come from skipping these)
 ---------------------------------------------------------------
@@ -99,23 +123,23 @@ Worked example of one section's `body_md`:
 
 Worked example of one `contradictions` entry (note the two sides are attributed to *different* sources):
 
-    {
+    {{
       "topic": "Q4 market growth rate",
       "positions": [
-        { "statement": "The market grew 12% year over year.", "source_ids": ["s2"] },
-        { "statement": "Growth was flat, under 2% year over year.", "source_ids": ["s4"] }
+        {{ "statement": "The market grew 12% year over year.", "source_ids": ["s2"] }},
+        {{ "statement": "Growth was flat, under 2% year over year.", "source_ids": ["s4"] }}
       ]
-    }
+    }}
 
 The same entry done WRONG — `s2` appears on both sides; one source cannot hold two contradicting positions, so this is rejected:
 
-    {
+    {{
       "topic": "Q4 market growth rate",
       "positions": [
-        { "statement": "The market grew 12% year over year.", "source_ids": ["s2"] },
-        { "statement": "Growth was flat, under 2% year over year.", "source_ids": ["s2"] }
+        {{ "statement": "The market grew 12% year over year.", "source_ids": ["s2"] }},
+        {{ "statement": "Growth was flat, under 2% year over year.", "source_ids": ["s2"] }}
       ]
-    }
+    }}
 
 Do not invent sources. Only cite ids that appear in the input list.
 """
@@ -141,8 +165,24 @@ class _ScribeLLMOutput(BaseModel):
 
 
 class ScribeAgent:
-    def __init__(self, model: str) -> None:
+    def __init__(
+        self,
+        model: str,
+        *,
+        section_min: int = _STANDARD.section_min,
+        section_max: int = _STANDARD.section_max,
+        summary_sentence_min: int = _STANDARD.summary_sentence_min,
+        summary_sentence_max: int = _STANDARD.summary_sentence_max,
+        body_detail: BodyDetail = _STANDARD.body_detail,
+    ) -> None:
         self.model = model
+        self._system_prompt = _build_system_prompt(
+            section_min=section_min,
+            section_max=section_max,
+            summary_sentence_min=summary_sentence_min,
+            summary_sentence_max=summary_sentence_max,
+            body_detail=body_detail,
+        )
 
     async def synthesize(
         self,
@@ -169,7 +209,7 @@ class ScribeAgent:
             include_raw=True,
         )
         messages: list[Any] = [
-            {"role": "system", "content": dated_system_prompt(_SYSTEM_PROMPT)},
+            {"role": "system", "content": dated_system_prompt(self._system_prompt)},
             {
                 "role": "user",
                 "content": _build_initial_prompt(topic, sub_questions, sources),
