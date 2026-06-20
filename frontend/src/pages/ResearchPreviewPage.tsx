@@ -8,6 +8,7 @@ import { useStartResearch } from '../hooks/useStartResearch'
 import { ALLOWED_MODELS } from '../constants/models'
 import { ApiError } from '../services/api'
 import { previewStateSchema, type PreviewState } from './researchPreviewState'
+import { estimateResearchDuration, estimateSourcesReviewed } from './researchDurationEstimate'
 
 function modelLabel(id: string): string {
   return ALLOWED_MODELS.find((m) => m.id === id)?.label ?? id
@@ -461,7 +462,6 @@ function PreviewContent({ initialState }: { initialState: PreviewState }) {
             ))}
           </div>
 
-          {/* TODO: compute estimate from actual depth and question count once the backend exposes timing data */}
           <div
             style={{
               marginTop: '1.5rem',
@@ -482,13 +482,13 @@ function PreviewContent({ initialState }: { initialState: PreviewState }) {
                 lineHeight: 1.05,
               }}
             >
-              ~ 4 min
+              {estimateResearchDuration(formData.depth, keptCount)}
             </div>
             <div
               className="mono"
               style={{ fontSize: '0.625rem', color: 'var(--muted)', marginTop: '0.375rem' }}
             >
-              ~ 30–60 sources reviewed · ~80 claims to audit
+              {estimateSourcesReviewed(formData.depth, keptCount)}
             </div>
           </div>
         </aside>
